@@ -70,6 +70,15 @@ android {
         main.java.srcDirs += 'src/main/kotlin'
     }
 
+    // ХамВПН: нативные библиотеки (ядро VPN ~78 МБ) кладём в APK сжатыми —
+    // файл для скачивания становится примерно в 2,5 раза меньше (≈120 → ≈45 МБ).
+    // Android распакует их при установке.
+    packaging {
+        jniLibs {
+            useLegacyPackaging = true
+        }
+    }
+
     defaultConfig {
         applicationId "com.hamvpn.app"
         minSdkVersion flutter.minSdkVersion
