@@ -1,0 +1,54 @@
+name: HamVPN Android APK
+
+# Сборка тестовой APK ХамВПН. Запуск вручную: Actions -> HamVPN Android APK -> Run workflow
+on:
+  workflow_dispatch:
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      IS_GITHUB_ACTIONS: 1
+      CHANNEL: dev
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Prepare (deps, codegen, core libs)
+        run: make android-apk-prepare
+
+      - name: Build APK
+        run: flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64
+
+      - name: Collect APKs
+        run: |
+          mkdir -p out
+          find build/app/outputs -name "*.apk" -print
+          for f in $(find build/app/outputs -name "*.apk"); do cp "$f" out/; done
+          cd out
+          for f in *.apk; do mv "$f" "HamVPN-${f#app-}"; done
+          ls -la
+
+      - uses: actions/upload-artifact@v6
+        with:
+          name: HamVPN-Android
+          path: out/*.apk
+          retention-days: 14
