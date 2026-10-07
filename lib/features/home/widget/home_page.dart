@@ -13,6 +13,8 @@ import 'package:hiddify/hamvpn/account_widgets.dart';
 import 'package:hiddify/hamvpn/speed_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
+import 'package:hiddify/hamvpn/updater.dart';
+import 'package:flutter_hooks/flutter_hooks.dart';
 
 class HomePage extends HookConsumerWidget {
   const HomePage({super.key});
@@ -23,6 +25,17 @@ class HomePage extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     // final hasAnyProfile = ref.watch(hasAnyProfileProvider);
     final activeProfile = ref.watch(activeProfileProvider);
+
+    // ХамВПН: при запуске и возврате в приложение смотрим, нет ли новой версии на сайте
+    useEffect(() {
+      Future<void>.delayed(const Duration(seconds: 3), () {
+        if (context.mounted) HamUpdater.autoCheck(context, ref);
+      });
+      return null;
+    }, const []);
+    useOnAppLifecycleStateChange((_, s) {
+      if (s == AppLifecycleState.resumed && context.mounted) HamUpdater.autoCheck(context, ref);
+    });
 
     return Scaffold(
       appBar: AppBar(

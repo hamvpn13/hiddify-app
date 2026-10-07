@@ -9,8 +9,7 @@ import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/model/failures.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/widget/adaptive_icon.dart';
-import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
-import 'package:hiddify/features/app_update/notifier/app_update_state.dart';
+import 'package:hiddify/hamvpn/updater.dart';
 import 'package:hiddify/hamvpn/hamvpn_api.dart';
 import 'package:hiddify/hamvpn/info_pages.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -23,33 +22,13 @@ class AboutPage extends HookConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final t = ref.watch(translationsProvider).requireValue;
     final appInfo = ref.watch(appInfoProvider).requireValue;
-    final appUpdate = ref.watch(appUpdateNotifierProvider);
-
-    ref.listen(appUpdateNotifierProvider, (_, next) async {
-      if (!context.mounted) return;
-      switch (next) {
-        case AppUpdateStateAvailable(:final versionInfo) || AppUpdateStateIgnored(:final versionInfo):
-          return await ref
-              .read(dialogNotifierProvider.notifier)
-              .showNewVersion(currentVersion: appInfo.presentVersion, newVersion: versionInfo, canIgnore: false);
-        case AppUpdateStateError(:final error):
-          return CustomToast.error(t.presentShortError(error)).show(context);
-        case AppUpdateStateNotAvailable():
-          return CustomToast.success(t.pages.about.notAvailableMsg).show(context);
-      }
-    });
-
     final conditionalTiles = [
-      if (appInfo.release.allowCustomUpdateChecker)
+      if (PlatformUtils.isAndroid)
         ListTile(
-          title: Text(t.pages.about.checkForUpdate),
-          trailing: switch (appUpdate) {
-            AppUpdateStateChecking() => const SizedBox(width: 24, height: 24, child: CircularProgressIndicator()),
-            _ => const Icon(FluentIcons.arrow_sync_24_regular),
-          },
-          onTap: () async {
-            await ref.read(appUpdateNotifierProvider.notifier).check();
-          },
+          title: const Text('Проверить обновления'),
+          subtitle: Text('Установлена версия ${appInfo.version}'),
+          trailing: const Icon(FluentIcons.arrow_sync_24_regular),
+          onTap: () => HamUpdater.manualCheck(context, ref),
         ),
       if (PlatformUtils.isDesktop)
         ListTile(

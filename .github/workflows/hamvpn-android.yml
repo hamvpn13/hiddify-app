@@ -9,9 +9,17 @@ on:
         type: boolean
         default: false
       version:
-        description: "Название версии (например 1.0.0)"
+        description: "Номер версии для людей (например 1.0.3). Пусто — 1.0.<номер запуска>"
         type: string
         default: ""
+      notes:
+        description: "Что нового (покажется в окне «Доступно обновление»)"
+        type: string
+        default: ""
+      force:
+        description: "Обязательное обновление (старые версии не смогут отказаться)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -48,8 +56,39 @@ jobs:
       - name: Prepare (deps, codegen, core libs)
         run: make android-apk-prepare
 
+      # Постоянный ключ подписи: без него новые версии не встанут поверх старых
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::warning::Нет секретов ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD — APK подписан временным ключом"
+            if [ "${{ inputs.publish }}" = "true" ]; then echo "::error::Публиковать без постоянного ключа нельзя"; exit 1; fi
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/hamvpn-release.jks"
+          PW="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          {
+            echo "storeFile=$RUNNER_TEMP/hamvpn-release.jks"
+            echo "storePassword=$PW"
+            echo "keyPassword=$PW"
+            echo "keyAlias=hamvpn"
+          } > android/key.properties
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # номер сборки всегда растёт: 40200 + номер запуска (старая 4.1.1 = 40101)
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          echo "Версия $NAME, сборка $BUILD"
+
       - name: Build APK
-        run: flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64
+        run: flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64 --build-name "$APP_VERSION" --build-number "$BUILD"
 
       - name: Collect APKs
         run: |
@@ -61,6 +100,31 @@ jobs:
           cp $D/app-x86_64-release.apk      out/HamVPN-x86_64.apk
           cp $D/app-release.apk             out/HamVPN-universal.apk
           ls -la out
+
+      # Описание версии для сайта: по нему приложение понимает, что пора обновиться
+      - name: version.json
+        env:
+          NOTES: ${{ inputs.notes }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          python3 - <<'PY'
+          import hashlib, json, os
+          files = {}
+          for abi in ("arm64", "arm7", "x86_64", "universal"):
+              name = f"HamVPN-{abi}.apk"
+              data = open(f"out/{name}", "rb").read()
+              files[abi] = {"file": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+          info = {
+              "version": os.environ["APP_VERSION"],
+              "build": int(os.environ["BUILD"]),
+              "notes": os.environ.get("NOTES", "").strip(),
+              "force": os.environ.get("FORCE") == "true",
+              "commit": os.environ["GITHUB_SHA"][:7],
+              "files": files,
+          }
+          json.dump(info, open("out/version.json", "w"), ensure_ascii=False, indent=1)
+          print(json.dumps(info, ensure_ascii=False, indent=1))
+          PY
 
       # Каждый вариант — отдельным файлом для скачивания
       - name: Upload arm64 (для большинства телефонов)
@@ -100,10 +164,8 @@ jobs:
         if: ${{ inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
-          VERSION: ${{ inputs.version }}
         run: |
-          NAME="${VERSION:-$(date +'%Y.%m.%d-%H%M')}"
           gh release delete app-latest --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
-          gh release create app-latest out/*.apk -R "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" --title "$NAME" \
-            --notes "Сборка ХамВПН $NAME для сайта hamvpn.net/download" --prerelease
+          gh release create app-latest out/*.apk out/version.json -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "ХамВПН $APP_VERSION" \
+            --notes "Сборка $BUILD для сайта hamvpn.net/download" --prerelease
