@@ -9,7 +9,8 @@ jobs:
     runs-on: ubuntu-latest
     env:
       IS_GITHUB_ACTIONS: 1
-      CHANNEL: dev
+      # prod = стабильная версия ядра из dependencies.properties (draft не совпадает с кодом)
+      CHANNEL: prod
     steps:
       - uses: actions/checkout@v6
 
