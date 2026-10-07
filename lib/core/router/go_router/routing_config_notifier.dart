@@ -22,6 +22,8 @@ import 'package:hiddify/features/settings/overview/sections/route_options_page.d
 import 'package:hiddify/features/settings/overview/sections/tls_tricks_page.dart';
 import 'package:hiddify/features/settings/overview/sections/warp_options_page.dart';
 import 'package:hiddify/features/settings/overview/settings_page.dart';
+import 'package:hiddify/hamvpn/hamvpn_account.dart';
+import 'package:hiddify/hamvpn/login_page.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -63,7 +65,14 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
     if (isMobileBreakpoint == null) return loadingConfig;
     return RoutingConfig(
       redirect: (context, state) {
-        final introCompleted = ref.read(Preferences.introCompleted);
+        // ХамВПН: без входа в аккаунт — только экран входа/регистрации.
+        // Вступительный экран Hiddify не показываем: язык, регион и прочее
+        // выставляются автоматически при первом входе (см. hamvpn_account.dart).
+        final hamLoggedIn = ref.read(HamPrefs.token).isNotEmpty;
+        final isHamLogin = state.matchedLocation == '/login';
+        if (!hamLoggedIn) return isHamLogin ? null : '/login';
+        if (isHamLogin) return '/home';
+        final introCompleted = ref.read(Preferences.introCompleted) || hamLoggedIn;
         final isIntro = state.matchedLocation == '/intro';
         // fix path-parameters for deep link
         String? url;
@@ -247,6 +256,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
           ],
         ),
         GoRoute(name: 'intro', path: '/intro', builder: (_, _) => const IntroPage()),
+        GoRoute(name: 'login', path: '/login', builder: (_, _) => const HamLoginPage()),
       ],
     );
   }

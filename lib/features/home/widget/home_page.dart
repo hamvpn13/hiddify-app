@@ -6,10 +6,9 @@ import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
 import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
-import 'package:hiddify/features/profile/widget/profile_tile.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_card.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_delay_indicator.dart';
-import 'package:hiddify/gen/assets.gen.dart';
+import 'package:hiddify/hamvpn/account_widgets.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
@@ -34,17 +33,9 @@ class HomePage extends HookConsumerWidget {
         //     : null,
         title: Row(
           children: [
-            Assets.images.logo.svg(height: 24),
-            const Gap(8),
-            Text.rich(
-              TextSpan(
-                children: [
-                  TextSpan(text: t.common.appTitle),
-                  const TextSpan(text: " "),
-                  const WidgetSpan(child: AppVersionLabel(), alignment: PlaceholderAlignment.middle),
-                ],
-              ),
-            ),
+            Image.asset('assets/images/hamvpn_logo.png', height: 28),
+            const Gap(10),
+            const Text('ХамВПН', style: TextStyle(fontWeight: FontWeight.w800)),
           ],
         ),
         actions: [
@@ -69,13 +60,10 @@ class HomePage extends HookConsumerWidget {
             ),
           ),
           const Gap(8),
-          Semantics(
-            key: const ValueKey("profile_add_button"),
-            label: t.pages.profiles.add,
-            child: IconButton(
-              icon: Icon(Icons.add_rounded, color: theme.colorScheme.primary),
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showAddProfile(),
-            ),
+          IconButton(
+            tooltip: 'Аккаунт',
+            icon: Icon(Icons.account_circle_rounded, color: theme.colorScheme.primary),
+            onPressed: () => HamAccountPage.open(context),
           ),
           const Gap(8),
         ],
@@ -109,15 +97,8 @@ class HomePage extends HookConsumerWidget {
                     MultiSliver(
                       children: [
                         // const Gap(100),
-                        switch (activeProfile) {
-                          AsyncData(value: final profile?) => ProfileTile(
-                            profile: profile,
-                            isMain: true,
-                            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-                            color: Theme.of(context).colorScheme.surfaceContainer,
-                          ),
-                          _ => const Text(""),
-                        },
+                        // ХамВПН: вместо карточки профиля Hiddify — наш аккаунт (дни, баланс, «Пополнить»)
+                        const SliverToBoxAdapter(child: HamAccountCard()),
                         const SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(
