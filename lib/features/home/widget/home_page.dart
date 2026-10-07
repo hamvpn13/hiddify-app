@@ -10,6 +10,7 @@ import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_card.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_delay_indicator.dart';
 import 'package:hiddify/hamvpn/account_widgets.dart';
+import 'package:hiddify/hamvpn/speed_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
 
@@ -32,13 +33,8 @@ class HomePage extends HookConsumerWidget {
         //         },
         //       )
         //     : null,
-        title: Row(
-          children: [
-            Image.asset('assets/images/hamvpn_logo.png', height: 28),
-            const Gap(10),
-            const Text('Хам VPN', style: TextStyle(fontWeight: FontWeight.w700)),
-          ],
-        ),
+        toolbarHeight: 72,
+        title: const HamGreetingTitle(),
         actions: [
           // IconButton(
           //     onPressed: () => const QuickSettingsRoute().push(context),
@@ -90,7 +86,7 @@ class HomePage extends HookConsumerWidget {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [ConnectionButton(), ActiveProxyDelayIndicator()],
+                                  children: [ConnectionButton(), ActiveProxyDelayIndicator(), HamSpeedBox()],
                                 ),
                               ),
                               ActiveProxyFooter(),

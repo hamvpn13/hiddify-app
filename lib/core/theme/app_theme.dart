@@ -2,23 +2,43 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hiddify/core/theme/app_theme_mode.dart';
 import 'package:hiddify/core/theme/theme_extensions.dart';
+import 'package:dynamic_color/dynamic_color.dart';
 import 'package:hiddify/hamvpn/hamvpn_theme.dart';
 
-const _hamConnectionDark = ConnectionButtonTheme(idleColor: Color(0xFF35414F), connectedColor: Color(0xFF2EE0A6));
-const _hamConnectionLight = ConnectionButtonTheme(idleColor: Color(0xFF9FADBD), connectedColor: Color(0xFF0A8F6A));
+// Кнопка подключения: красная — выключено, зелёная — подключено.
+const _hamConnectionDark = ConnectionButtonTheme(idleColor: Color(0xFFE5484D), connectedColor: Color(0xFF2FB463));
+const _hamConnectionLight = ConnectionButtonTheme(idleColor: Color(0xFFD93A3F), connectedColor: Color(0xFF1E9E52));
 
 class AppTheme {
   AppTheme(this.mode, this.fontFamily);
   final AppThemeMode mode;
   final String fontFamily;
 
-  // ХамВПН: оформление как на сайте hamvpn.net. Системные «цвета от обоев»
-  // (Material You) не используем — приложение везде выглядит одинаково.
-  ThemeData lightTheme(ColorScheme? lightColorScheme) =>
-      buildHamTheme(HamTokens.light, Brightness.light, fontFamily, const [_hamConnectionLight]);
+  // ХамВПН: стандартный Material 3 — цвета от обоев телефона (Material You),
+  // если их нет — из фирменного цвета иконки.
+  ThemeData lightTheme(ColorScheme? lightColorScheme) => _build(
+    lightColorScheme?.harmonized() ?? ColorScheme.fromSeed(seedColor: HamTokens.seed),
+    _hamConnectionLight,
+  );
 
-  ThemeData darkTheme(ColorScheme? darkColorScheme) =>
-      buildHamTheme(HamTokens.dark, Brightness.dark, fontFamily, const [_hamConnectionDark]);
+  ThemeData darkTheme(ColorScheme? darkColorScheme) => _build(
+    darkColorScheme?.harmonized() ??
+        ColorScheme.fromSeed(seedColor: HamTokens.seed, brightness: Brightness.dark),
+    _hamConnectionDark,
+  );
+
+  ThemeData _build(ColorScheme scheme, ConnectionButtonTheme connection) => ThemeData(
+    useMaterial3: true,
+    colorScheme: scheme,
+    fontFamily: fontFamily,
+    scaffoldBackgroundColor: mode.trueBlack && scheme.brightness == Brightness.dark ? Colors.black : scheme.surface,
+    extensions: <ThemeExtension<dynamic>>{connection},
+    navigationBarTheme: const NavigationBarThemeData(height: 72),
+    filledButtonTheme: FilledButtonThemeData(
+      style: FilledButton.styleFrom(minimumSize: const Size(48, 48), textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600)),
+    ),
+    inputDecorationTheme: const InputDecorationTheme(border: OutlineInputBorder()),
+  );
 
   CupertinoThemeData cupertinoThemeData(bool sysDark, ColorScheme? lightColorScheme, ColorScheme? darkColorScheme) {
     final bool isDark = switch (mode) {

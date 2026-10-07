@@ -1,3 +1,4 @@
+import 'package:hiddify/hamvpn/proxy_names.dart';
 import 'package:fluentui_system_icons/fluentui_system_icons.dart';
 import 'package:flutter/material.dart';
 import 'package:hiddify/core/localization/translations.dart';
@@ -23,7 +24,7 @@ class ConnectionStatsCard extends HookConsumerWidget {
         switch (activeProxy) {
           AsyncData(value: final proxy) => (
             label: const Icon(FluentIcons.arrow_routing_20_regular),
-            data: Text(proxy.tagDisplay),
+            data: Text(hamProxyName(proxy.tagDisplay, type: proxy.type)),
             semanticLabel: null,
           ),
           _ => (label: const Icon(FluentIcons.arrow_routing_20_regular), data: const Text("..."), semanticLabel: null),

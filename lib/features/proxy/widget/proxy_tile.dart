@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/features/proxy/active/ip_widget.dart';
 import 'package:hiddify/gen/fonts.gen.dart';
+import 'package:hiddify/hamvpn/proxy_names.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hiddify/utils/platform_utils.dart';
@@ -21,7 +22,7 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
     return ListTile(
       // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
-        proxy.tagDisplay,
+        hamProxyName(proxy.tagDisplay, type: proxy.type),
         overflow: TextOverflow.ellipsis,
         style: PlatformUtils.isWindows ? const TextStyle(fontFamily: FontFamily.emoji) : null,
       ),
@@ -31,17 +32,8 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
         size: 40,
         padding: const EdgeInsetsDirectional.only(end: 8),
       ),
-      subtitle: Text.rich(
-        TextSpan(
-          text: proxy.type,
-          children: [
-            if (proxy.isGroup)
-              TextSpan(
-                text: ' (${proxy.groupSelectedTagDisplay.trim()})',
-                style: Theme.of(context).textTheme.bodySmall,
-              ),
-          ],
-        ),
+      subtitle: Text(
+        hamProxySubtitle(type: proxy.type, isGroup: proxy.isGroup, selected: proxy.groupSelectedTagDisplay),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),
@@ -49,7 +41,7 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
         children: [
           if (proxy.urlTestDelay != 0)
             Text(
-              proxy.urlTestDelay > 65000 ? "×" : proxy.urlTestDelay.toString(),
+              proxy.urlTestDelay > 65000 ? "нет связи" : "${proxy.urlTestDelay} мс",
               style: TextStyle(color: delayColor(context, proxy.urlTestDelay)),
             ),
 

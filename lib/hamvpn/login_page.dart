@@ -67,27 +67,41 @@ class HamLoginPage extends HookConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Image.asset('assets/images/hamvpn_logo.png', width: 44, height: 44),
-                      const Gap(10),
-                      Text('Хам VPN', style: TextStyle(color: k.text, fontSize: 22, fontWeight: FontWeight.w700)),
-                    ],
-                  ),
-                  const Gap(24),
+                  Center(child: Image.asset('assets/images/hamvpn_logo.png', width: 88, height: 88)),
+                  const Gap(16),
                   Text(
-                    isRegister.value ? 'Регистрация' : 'Вход',
-                    style: TextStyle(color: k.text, fontSize: 26, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+                    isRegister.value ? 'Регистрация' : 'Вход в Хам VPN',
+                    textAlign: TextAlign.center,
+                    style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                   ),
-                  const Gap(6),
-                  Text(
-                    isRegister.value
-                        ? 'Пробный период включится сразу после регистрации.'
-                        : 'Тот же логин и пароль, что на сайте и в боте.',
-                    style: TextStyle(color: k.textDim, fontSize: 16),
+                  const Gap(16),
+                  // Подсказка: аккаунт общий для сайта, бота и приложения
+                  Container(
+                    padding: const EdgeInsets.all(14),
+                    decoration: BoxDecoration(
+                      color: Theme.of(context).colorScheme.secondaryContainer,
+                      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+                    ),
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
+                        Icon(Icons.info_outline_rounded, color: Theme.of(context).colorScheme.onSecondaryContainer),
+                        const Gap(12),
+                        Expanded(
+                          child: Text(
+                            isRegister.value
+                                ? 'Этим логином и паролем потом можно входить и на сайт hamvpn.net, и в Telegram-бота. '
+                                    'Пробный период включится сразу.'
+                                : 'Логин и пароль — те же, что на сайте hamvpn.net и в Telegram-боте @hamvpn13_bot.\n\n'
+                                    'Не помните? Откройте бота и нажмите кнопку «🔐 Вход на сайт» — '
+                                    'там видно ваш логин, и можно получить новый пароль.',
+                            style: TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer, height: 1.4),
+                          ),
+                        ),
+                      ],
+                    ),
                   ),
-                  const Gap(20),
+                  const Gap(16),
                   if (error.value != null) ...[
                     HamFlash(text: error.value!, color: k.red, soft: k.redSoft),
                     const Gap(12),

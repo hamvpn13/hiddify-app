@@ -2,12 +2,12 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
+import 'package:hiddify/hamvpn/content_pages.dart';
 import 'package:hiddify/hamvpn/hamvpn_account.dart';
 import 'package:hiddify/hamvpn/hamvpn_api.dart';
 import 'package:hiddify/hamvpn/hamvpn_theme.dart';
 import 'package:hiddify/hamvpn/topup_page.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
-import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 Future<void> _open(String url) async {
@@ -26,7 +26,52 @@ void useHamAutoRefresh(WidgetRef ref) {
   });
 }
 
-/// Компактная карточка на главном экране: статус, сколько дней осталось, баланс, «Пополнить».
+/// Приветствие по времени суток: «Доброе утро / Добрый день / Добрый вечер / Доброй ночи».
+String hamGreeting([DateTime? now]) {
+  final h = (now ?? DateTime.now()).hour;
+  if (h >= 5 && h < 12) return 'Доброе утро';
+  if (h >= 12 && h < 17) return 'Добрый день';
+  if (h >= 17 && h < 23) return 'Добрый вечер';
+  return 'Доброй ночи';
+}
+
+/// Заголовок главного экрана: «Добрый день, Магомед».
+class HamGreetingTitle extends ConsumerWidget {
+  const HamGreetingTitle({super.key});
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    final live = ref.watch(hamAccountProvider.select((s) => s.login));
+    final login = live.isNotEmpty ? live : ref.watch(HamPrefs.login);
+    final theme = Theme.of(context);
+    return Row(
+      children: [
+        Image.asset('assets/images/hamvpn_logo.png', height: 34),
+        const Gap(12),
+        Expanded(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                login.isEmpty ? hamGreeting() : '${hamGreeting()},',
+                style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
+              ),
+              if (login.isNotEmpty)
+                Text(
+                  login,
+                  overflow: TextOverflow.ellipsis,
+                  style: theme.textTheme.titleLarge?.copyWith(fontWeight: FontWeight.w600),
+                ),
+            ],
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+/// Компактная плашка на главном экране: статус, дни, баланс и «Пополнить» — одной строкой.
 class HamAccountCard extends HookConsumerWidget {
   const HamAccountCard({super.key});
 
@@ -44,58 +89,45 @@ class HamAccountCard extends HookConsumerWidget {
     final (String status, Color color, Color soft) = !hasData
         ? (account.error != null ? 'Нет связи с сервером' : 'Загрузка…', k.textDim, k.bgSunken)
         : !active
-        ? ('Приостановлен — пополните баланс', k.red, k.redSoft)
+        ? ('На паузе — пополните баланс', k.red, k.redSoft)
         : account.trialActive
-        ? ('Пробный период', k.green, k.greenSoft)
+        ? ('Пробный период · ${hamDays(days)}', k.green, k.greenSoft)
         : low
-        ? ('Скоро закончится', k.amber, k.amberSoft)
-        : ('Активен', k.green, k.greenSoft);
+        ? ('Осталось ${hamDays(days)}', k.amber, k.amberSoft)
+        : ('Осталось ${hamDays(days)}', k.green, k.greenSoft);
 
     return HamCard(
-      margin: const EdgeInsets.fromLTRB(14, 14, 14, 8),
-      padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
+      margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       borderColor: !hasData ? null : (!active ? k.red : (low ? k.amber : null)),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      child: Row(
         children: [
-          Row(
-            children: [
-              HamStatusDot(color: color, soft: soft),
-              const Gap(10),
-              Expanded(
-                child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
-              ),
-              if (account.loading)
-                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: k.textDim)),
-            ],
+          HamStatusDot(color: color, soft: soft),
+          const Gap(12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(status, style: TextStyle(color: k.text, fontWeight: FontWeight.w600, fontSize: 15)),
+                if (hasData)
+                  Text('Баланс ${hamRub(account.balanceRub)}', style: TextStyle(color: k.textDim, fontSize: 13)),
+              ],
+            ),
           ),
-          const Gap(10),
-          Row(
-            crossAxisAlignment: CrossAxisAlignment.end,
-            children: [
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      hasData ? (active ? 'Осталось ${hamDays(days)}' : 'VPN на паузе') : '—',
-                      style: TextStyle(color: k.text, fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.4),
-                    ),
-                    const Gap(2),
-                    Text(
-                      hasData ? 'Баланс ${hamRub(account.balanceRub)} · ${account.login}' : ' ',
-                      style: TextStyle(color: k.textDim),
-                    ),
-                  ],
-                ),
-              ),
-              const Gap(10),
-              FilledButton(
-                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16)),
-                onPressed: hasData ? () => HamTopupPage.open(context) : null,
-                child: const Text('Пополнить'),
-              ),
-            ],
+          if (account.loading)
+            Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: k.textDim)),
+            ),
+          FilledButton.tonal(
+            style: FilledButton.styleFrom(
+              minimumSize: const Size(0, 40),
+              padding: const EdgeInsets.symmetric(horizontal: 14),
+              textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
+            ),
+            onPressed: hasData ? () => HamTopupPage.open(context) : null,
+            child: const Text('Пополнить'),
           ),
         ],
       ),
@@ -139,12 +171,6 @@ class HamAccountPage extends HookConsumerWidget {
       } on HamApiException catch (e) {
         snack(e.message);
       }
-    }
-
-    Future<void> invite() async {
-      final link = account.link('referral');
-      if (link.isEmpty) return;
-      await Share.share('Подключайся к Хам VPN — первые дни бесплатно, а по моей ссылке ещё и бонус: $link');
     }
 
     Future<void> logout() async {
@@ -299,7 +325,7 @@ class HamAccountPage extends HookConsumerWidget {
                   row(
                     Icons.payments_rounded,
                     'Заработать с нами',
-                    invite,
+                    () => HamReferralPage.open(context),
                     subtitle: 'Другу — бонусные дни, вам — процент с каждой его оплаты',
                   ),
                 ],
@@ -309,7 +335,7 @@ class HamAccountPage extends HookConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               child: Column(
                 children: [
-                  row(Icons.menu_book_rounded, 'Инструкции', () => _open(account.link('instructions'))),
+                  row(Icons.menu_book_rounded, 'Инструкции', () => HamInstructionsPage.open(context)),
                   sep(),
                   row(
                     Icons.support_agent_rounded,

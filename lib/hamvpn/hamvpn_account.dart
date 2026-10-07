@@ -22,6 +22,9 @@ abstract class HamPrefs {
 
   /// Ссылка подписки, которую приложение уже добавило в Hiddify.
   static final profileUrl = PreferencesNotifier.create<String, String>('hamvpn_profile_url', '');
+
+  /// Логин — чтобы приветствие «Добрый день, …» было видно сразу при запуске.
+  static final login = PreferencesNotifier.create<String, String>('hamvpn_login', '');
 }
 
 final hamApiProvider = Provider<HamApi>((ref) => HamApi());
@@ -93,6 +96,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
   Future<void> _afterAuth(Map<String, dynamic> data) async {
     final token = data['token'] as String? ?? '';
     state = HamAccountState(me: data);
+    await ref.read(HamPrefs.login.notifier).update(state.login);
     await _applyFirstLaunchDefaults();
     await syncProfile();
     // Токен сохраняем последним: на него завязан переход на главный экран
@@ -131,6 +135,9 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
     try {
       final data = await _api.me(token);
       state = HamAccountState(me: data);
+      if (state.login.isNotEmpty && state.login != ref.read(HamPrefs.login)) {
+        await ref.read(HamPrefs.login.notifier).update(state.login);
+      }
       await syncProfile();
     } on HamApiException catch (e) {
       if (e.isUnauthorized) {
@@ -200,6 +207,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       }
     } catch (_) {}
     await ref.read(HamPrefs.profileUrl.notifier).update('');
+    await ref.read(HamPrefs.login.notifier).update('');
     state = const HamAccountState();
     await ref.read(HamPrefs.token.notifier).update('');
   }
@@ -223,6 +231,19 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
   Future<String> topupStatus(int requestId) async {
     final data = await _api.topupStatus(_token, requestId);
     return (data['status'] as String?) ?? 'pending';
+  }
+
+  Future<Map<String, dynamic>> referral() => _api.referral(_token);
+
+  Future<String> referralTransfer() async {
+    final data = await _api.referralTransfer(_token);
+    await refresh();
+    return (data['message'] as String?) ?? 'Готово';
+  }
+
+  Future<String> referralPayout(String amount, String details) async {
+    final data = await _api.referralPayout(_token, amount, details);
+    return (data['message'] as String?) ?? 'Заявка создана';
   }
 
   Future<String> redeemPromo(String code) async {

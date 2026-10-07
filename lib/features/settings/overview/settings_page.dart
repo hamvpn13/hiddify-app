@@ -52,14 +52,13 @@ class SettingsPage extends HookConsumerWidget {
           decoration: BoxDecoration(
             color: k.bgElev,
             borderRadius: BorderRadius.circular(HamTokens.radius),
-            border: Border.all(color: k.border),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(
             children: [
               for (var i = 0; i < children.length; i++) ...[
                 children[i],
-                if (i != children.length - 1) Divider(color: k.border, height: 1, indent: 16, endIndent: 16),
+                if (i != children.length - 1) Divider(color: k.border.withValues(alpha: .5), height: 1, indent: 56, endIndent: 16),
               ],
             ],
           ),

@@ -95,6 +95,19 @@ class HamApi {
   Future<Map<String, dynamic>> promo(String token, String code) =>
       _call(() => _dio.post('/promo', data: {'code': code}, options: _auth(token)));
 
+  Future<Map<String, dynamic>> referral(String token) => _call(() => _dio.get('/referral', options: _auth(token)));
+
+  Future<Map<String, dynamic>> referralTransfer(String token) =>
+      _call(() => _dio.post('/referral/transfer', options: _auth(token)));
+
+  Future<Map<String, dynamic>> referralPayout(String token, String amount, String details) => _call(
+    () => _dio.post('/referral/payout', data: {'amount': amount, 'details': details}, options: _auth(token)),
+  );
+
+  Future<Map<String, dynamic>> instructions() => _call(() => _dio.get('/instructions'));
+
+  Future<Map<String, dynamic>> speed() => _call(() => _dio.get('/speed'));
+
   Future<void> logout(String token) async {
     try {
       await _dio.post('/logout', options: _auth(token));
