@@ -2,33 +2,23 @@ import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 import 'package:hiddify/core/theme/app_theme_mode.dart';
 import 'package:hiddify/core/theme/theme_extensions.dart';
+import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+
+const _hamConnectionDark = ConnectionButtonTheme(idleColor: Color(0xFF35414F), connectedColor: Color(0xFF2EE0A6));
+const _hamConnectionLight = ConnectionButtonTheme(idleColor: Color(0xFF9FADBD), connectedColor: Color(0xFF0A8F6A));
 
 class AppTheme {
   AppTheme(this.mode, this.fontFamily);
   final AppThemeMode mode;
   final String fontFamily;
 
-  ThemeData lightTheme(ColorScheme? lightColorScheme) {
-    final ColorScheme scheme = lightColorScheme ?? ColorScheme.fromSeed(seedColor: const Color(0xFF293CA0));
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      fontFamily: fontFamily,
-      extensions: const <ThemeExtension<dynamic>>{ConnectionButtonTheme.light},
-    );
-  }
+  // ХамВПН: оформление как на сайте hamvpn.net. Системные «цвета от обоев»
+  // (Material You) не используем — приложение везде выглядит одинаково.
+  ThemeData lightTheme(ColorScheme? lightColorScheme) =>
+      buildHamTheme(HamTokens.light, Brightness.light, fontFamily, const [_hamConnectionLight]);
 
-  ThemeData darkTheme(ColorScheme? darkColorScheme) {
-    final ColorScheme scheme =
-        darkColorScheme ?? ColorScheme.fromSeed(seedColor: const Color(0xFF293CA0), brightness: Brightness.dark);
-    return ThemeData(
-      useMaterial3: true,
-      colorScheme: scheme,
-      scaffoldBackgroundColor: mode.trueBlack ? Colors.black : scheme.background,
-      fontFamily: fontFamily,
-      extensions: const <ThemeExtension<dynamic>>{ConnectionButtonTheme.light},
-    );
-  }
+  ThemeData darkTheme(ColorScheme? darkColorScheme) =>
+      buildHamTheme(HamTokens.dark, Brightness.dark, fontFamily, const [_hamConnectionDark]);
 
   CupertinoThemeData cupertinoThemeData(bool sysDark, ColorScheme? lightColorScheme, ColorScheme? darkColorScheme) {
     final bool isDark = switch (mode) {

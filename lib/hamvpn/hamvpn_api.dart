@@ -5,6 +5,9 @@ import 'package:dio/dio.dart';
 const String kHamSiteUrl = 'https://hamvpn.net';
 const String kHamApiBase = '$kHamSiteUrl/api/app/v1';
 
+/// Telegram-канал ХамВПН (пусто — пункт в «О программе» не показывается).
+const String kHamTelegramChannelUrl = '';
+
 /// Ошибка API с текстом, который можно сразу показать человеку.
 class HamApiException implements Exception {
   HamApiException(this.message, {this.code = 'error', this.status});

@@ -15,127 +15,105 @@ Future<void> _open(String url) async {
   await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
 }
 
-/// Карточка аккаунта на главном экране: сколько дней осталось, баланс, «Пополнить».
-/// Обновляется при открытии и каждый раз, когда приложение возвращается на экран.
+/// Обновляет данные аккаунта при показе и при каждом возврате в приложение.
+void useHamAutoRefresh(WidgetRef ref) {
+  useEffect(() {
+    Future.microtask(() => ref.read(hamAccountProvider.notifier).refresh());
+    return null;
+  }, const []);
+  useOnAppLifecycleStateChange((_, current) {
+    if (current == AppLifecycleState.resumed) ref.read(hamAccountProvider.notifier).refresh();
+  });
+}
+
+/// Компактная карточка на главном экране: статус, сколько дней осталось, баланс, «Пополнить».
 class HamAccountCard extends HookConsumerWidget {
   const HamAccountCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final k = HamTokens.of(context);
     final account = ref.watch(hamAccountProvider);
-
-    useEffect(() {
-      Future.microtask(() => ref.read(hamAccountProvider.notifier).refresh());
-      return null;
-    }, const []);
-    useOnAppLifecycleStateChange((_, current) {
-      if (current == AppLifecycleState.resumed) ref.read(hamAccountProvider.notifier).refresh();
-    });
+    useHamAutoRefresh(ref);
 
     final hasData = account.me != null;
     final active = account.hasActiveConfig;
     final days = account.daysLeft;
-    final low = active && days <= 3;
+    final low = active && !account.trialActive && days <= 3;
 
-    final String status;
-    final Color statusColor;
-    if (!hasData) {
-      status = account.error != null ? 'Нет связи с сервером' : 'Загрузка…';
-      statusColor = Colors.white70;
-    } else if (!active) {
-      status = 'Приостановлен — пополните баланс';
-      statusColor = HamColors.bad;
-    } else if (account.trialActive) {
-      status = 'Пробный период';
-      statusColor = HamColors.gold;
-    } else {
-      status = low ? 'Скоро закончится' : 'Активен';
-      statusColor = low ? HamColors.warn : HamColors.ok;
-    }
+    final (String status, Color color, Color soft) = !hasData
+        ? (account.error != null ? 'Нет связи с сервером' : 'Загрузка…', k.textDim, k.bgSunken)
+        : !active
+        ? ('Приостановлен — пополните баланс', k.red, k.redSoft)
+        : account.trialActive
+        ? ('Пробный период', k.green, k.greenSoft)
+        : low
+        ? ('Скоро закончится', k.amber, k.amberSoft)
+        : ('Активен', k.green, k.greenSoft);
 
-    return Container(
-      margin: const EdgeInsets.fromLTRB(16, 8, 16, 8),
+    return HamCard(
+      margin: const EdgeInsets.fromLTRB(14, 14, 14, 8),
       padding: const EdgeInsets.fromLTRB(18, 16, 18, 16),
-      decoration: BoxDecoration(
-        gradient: HamColors.cardGradient,
-        borderRadius: BorderRadius.circular(22),
-        boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: .18), blurRadius: 18, offset: const Offset(0, 8))],
-      ),
-      child: DefaultTextStyle.merge(
-        style: const TextStyle(color: Colors.white),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Row(
-              children: [
-                Container(
-                  width: 9,
-                  height: 9,
-                  decoration: BoxDecoration(color: statusColor, shape: BoxShape.circle),
+      borderColor: !hasData ? null : (!active ? k.red : (low ? k.amber : null)),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              HamStatusDot(color: color, soft: soft),
+              const Gap(10),
+              Expanded(
+                child: Text(status, style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+              ),
+              if (account.loading)
+                SizedBox(width: 14, height: 14, child: CircularProgressIndicator(strokeWidth: 2, color: k.textDim)),
+            ],
+          ),
+          const Gap(10),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.end,
+            children: [
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      hasData ? (active ? 'Осталось ${hamDays(days)}' : 'VPN на паузе') : '—',
+                      style: TextStyle(color: k.text, fontSize: 24, fontWeight: FontWeight.w700, letterSpacing: -0.4),
+                    ),
+                    const Gap(2),
+                    Text(
+                      hasData ? 'Баланс ${hamRub(account.balanceRub)} · ${account.login}' : ' ',
+                      style: TextStyle(color: k.textDim),
+                    ),
+                  ],
                 ),
-                const Gap(8),
-                Expanded(
-                  child: Text(status, style: TextStyle(color: statusColor, fontWeight: FontWeight.w600)),
-                ),
-                if (account.loading)
-                  const SizedBox(
-                    width: 14,
-                    height: 14,
-                    child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
-                  ),
-              ],
-            ),
-            const Gap(10),
-            Row(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Expanded(
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        hasData ? (active ? 'Осталось ${hamDays(days)}' : 'VPN на паузе') : '—',
-                        style: const TextStyle(fontSize: 24, fontWeight: FontWeight.w800, color: Colors.white),
-                      ),
-                      const Gap(2),
-                      Text(
-                        hasData ? 'Баланс ${hamRub(account.balanceRub)} · ${account.login}' : ' ',
-                        style: TextStyle(color: Colors.white.withValues(alpha: .75)),
-                      ),
-                    ],
-                  ),
-                ),
-                FilledButton(
-                  style: FilledButton.styleFrom(
-                    backgroundColor: HamColors.gold,
-                    foregroundColor: HamColors.night,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                    textStyle: const TextStyle(fontWeight: FontWeight.w700),
-                  ),
-                  onPressed: hasData ? () => HamTopupPage.open(context) : null,
-                  child: const Text('Пополнить'),
-                ),
-              ],
-            ),
-          ],
-        ),
+              ),
+              const Gap(10),
+              FilledButton(
+                style: FilledButton.styleFrom(padding: const EdgeInsets.symmetric(horizontal: 16)),
+                onPressed: hasData ? () => HamTopupPage.open(context) : null,
+                child: const Text('Пополнить'),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
 }
 
-/// Экран «Аккаунт»: пополнение, промокод, приглашение друга, инструкции, поддержка, выход.
+/// Вкладка «Аккаунт» (нижнее меню) — повторяет личный кабинет сайта.
 class HamAccountPage extends HookConsumerWidget {
   const HamAccountPage({super.key});
 
-  static Future<void> open(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HamAccountPage()));
-
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final k = HamTokens.of(context);
     final account = ref.watch(hamAccountProvider);
-    final theme = Theme.of(context);
+    useHamAutoRefresh(ref);
+
+    void snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
 
     Future<void> promo() async {
       final controller = TextEditingController();
@@ -150,26 +128,23 @@ class HamAccountPage extends HookConsumerWidget {
             decoration: const InputDecoration(hintText: 'Введите промокод'),
           ),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
+            OutlinedButton(onPressed: () => Navigator.pop(ctx), child: const Text('Отмена')),
             FilledButton(onPressed: () => Navigator.pop(ctx, controller.text.trim()), child: const Text('Применить')),
           ],
         ),
       );
       if (code == null || code.isEmpty) return;
       try {
-        final msg = await ref.read(hamAccountProvider.notifier).redeemPromo(code);
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+        snack(await ref.read(hamAccountProvider.notifier).redeemPromo(code));
       } on HamApiException catch (e) {
-        if (context.mounted) ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
+        snack(e.message);
       }
     }
 
     Future<void> invite() async {
       final link = account.link('referral');
       if (link.isEmpty) return;
-      await Share.share(
-        'Подключайся к ХамВПН — быстрый VPN, первые дни бесплатно (по моей ссылке ещё и бонус): $link',
-      );
+      await Share.share('Подключайся к Хам VPN — первые дни бесплатно, а по моей ссылке ещё и бонус: $link');
     }
 
     Future<void> logout() async {
@@ -179,63 +154,187 @@ class HamAccountPage extends HookConsumerWidget {
           title: const Text('Выйти из аккаунта?'),
           content: const Text('VPN на этом устройстве отключится. Войти снова можно тем же логином и паролем.'),
           actions: [
-            TextButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
-            FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Выйти')),
+            OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+            FilledButton(
+              style: FilledButton.styleFrom(backgroundColor: k.red, foregroundColor: Colors.white),
+              onPressed: () => Navigator.pop(ctx, true),
+              child: const Text('Выйти'),
+            ),
           ],
         ),
       );
-      if (ok == true) {
-        await ref.read(hamAccountProvider.notifier).logout();
-        if (context.mounted) Navigator.of(context).popUntil((r) => r.isFirst);
-      }
+      if (ok == true) await ref.read(hamAccountProvider.notifier).logout();
     }
 
-    Widget tile(IconData icon, String title, VoidCallback onTap, {String? subtitle, Color? color}) => ListTile(
-      leading: Icon(icon, color: color ?? HamColors.rose),
-      title: Text(title, style: TextStyle(color: color, fontWeight: FontWeight.w500)),
-      subtitle: subtitle == null ? null : Text(subtitle),
-      trailing: const Icon(Icons.chevron_right_rounded),
+    Widget row(IconData icon, String title, VoidCallback onTap, {String? subtitle}) => InkWell(
       onTap: onTap,
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 14),
+        child: Row(
+          children: [
+            Icon(icon, color: k.accent, size: 22),
+            const Gap(14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(title, style: TextStyle(color: k.text, fontSize: 16, fontWeight: FontWeight.w500)),
+                  if (subtitle != null) ...[
+                    const Gap(2),
+                    Text(subtitle, style: TextStyle(color: k.textDim, fontSize: 13.5)),
+                  ],
+                ],
+              ),
+            ),
+            Icon(Icons.chevron_right_rounded, color: k.textDim),
+          ],
+        ),
+      ),
     );
 
+    Widget sep() => Divider(color: k.border, height: 1);
+
+    final hasData = account.me != null;
+    final active = account.hasActiveConfig;
+
     return Scaffold(
-      appBar: AppBar(title: const Text('Аккаунт')),
+      appBar: AppBar(title: const Text('Личный кабинет')),
       body: RefreshIndicator(
         onRefresh: () => ref.read(hamAccountProvider.notifier).refresh(),
         child: ListView(
+          padding: const EdgeInsets.fromLTRB(14, 16, 14, 40),
           children: [
-            const HamAccountCard(),
-            if (account.login.isNotEmpty)
-              ListTile(
-                leading: const Icon(Icons.person_rounded),
-                title: Text(account.login),
-                subtitle: const Text('Ваш логин — им же входите на сайт и в бота'),
-                trailing: IconButton(
-                  icon: const Icon(Icons.copy_rounded),
-                  onPressed: () {
-                    Clipboard.setData(ClipboardData(text: account.login));
-                    ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Логин скопирован')));
-                  },
+            if (account.trialActive)
+              HamCard(
+                borderColor: k.green,
+                padding: const EdgeInsets.all(16),
+                child: Text.rich(
+                  TextSpan(
+                    style: TextStyle(color: k.text, fontSize: 15),
+                    children: [
+                      const TextSpan(text: 'Пробный период активен', style: TextStyle(fontWeight: FontWeight.w700)),
+                      TextSpan(text: ' — осталось ${hamDays(((account.trial['days_left'] as num?) ?? 0).toInt())}. Пользуйтесь бесплатно!'),
+                    ],
+                  ),
                 ),
               ),
-            const Divider(),
-            tile(Icons.account_balance_wallet_rounded, 'Пополнить баланс', () => HamTopupPage.open(context)),
-            tile(Icons.card_giftcard_rounded, 'Ввести промокод', promo),
-            tile(
-              Icons.payments_rounded,
-              'Заработать с нами',
-              invite,
-              subtitle: 'Поделитесь ссылкой: другу — бонусные дни, вам — процент с его оплат',
+            if (account.error != null && !hasData)
+              Padding(
+                padding: const EdgeInsets.only(bottom: 16),
+                child: HamFlash(text: account.error!, color: k.red, soft: k.redSoft),
+              ),
+            HamCard(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      Text('Логин: ', style: TextStyle(color: k.text, fontSize: 15)),
+                      Text(account.login, style: TextStyle(color: k.text, fontSize: 15, fontWeight: FontWeight.w700)),
+                      const Spacer(),
+                      if (account.login.isNotEmpty)
+                        OutlinedButton(
+                          style: OutlinedButton.styleFrom(
+                            minimumSize: const Size(0, 34),
+                            padding: const EdgeInsets.symmetric(horizontal: 12),
+                            textStyle: const TextStyle(fontSize: 13.5),
+                          ),
+                          onPressed: () {
+                            Clipboard.setData(ClipboardData(text: account.login));
+                            snack('Логин скопирован');
+                          },
+                          child: const Text('Скопировать'),
+                        ),
+                    ],
+                  ),
+                  const Gap(4),
+                  Text(
+                    'Telegram: ${account.user['telegram_linked'] == true ? 'привязан ✅' : 'не привязан'}',
+                    style: TextStyle(color: k.text, fontSize: 15),
+                  ),
+                  const Gap(12),
+                  Text(
+                    hasData ? hamRub(account.balanceRub) : '—',
+                    style: TextStyle(color: k.text, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
+                  ),
+                  Row(
+                    children: [
+                      HamStatusDot(
+                        color: active ? k.green : k.red,
+                        soft: active ? k.greenSoft : k.redSoft,
+                      ),
+                      const Gap(8),
+                      Text(
+                        !hasData
+                            ? ''
+                            : active
+                            ? 'VPN работает · хватит примерно на ${hamDays(account.daysLeft)}'
+                            : 'VPN приостановлен — пополните баланс',
+                        style: TextStyle(color: k.textDim),
+                      ),
+                    ],
+                  ),
+                  const Gap(4),
+                  Text(
+                    'Тариф — ${account.pricePerMonth} ₽ в месяц за одно устройство, списывается посуточно.',
+                    style: TextStyle(color: k.textDim, fontSize: 13.5),
+                  ),
+                  const Gap(14),
+                  SizedBox(
+                    width: double.infinity,
+                    child: FilledButton(
+                      onPressed: hasData ? () => HamTopupPage.open(context) : null,
+                      child: const Text('Пополнить баланс'),
+                    ),
+                  ),
+                ],
+              ),
             ),
-            const Divider(),
-            tile(Icons.menu_book_rounded, 'Инструкции', () => _open(account.link('instructions'))),
-            tile(Icons.support_agent_rounded, 'Поддержка', () => _open(account.link('support_bot')),
-                subtitle: 'Напишите нам в Telegram-бота'),
-            tile(Icons.language_rounded, 'Личный кабинет на сайте', () => _open(account.link('site'))),
-            tile(Icons.policy_rounded, 'Политика и условия', () => _open(account.link('policy'))),
-            const Divider(),
-            tile(Icons.logout_rounded, 'Выйти из аккаунта', logout, color: theme.colorScheme.error),
-            const Gap(24),
+            HamCard(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              child: Column(
+                children: [
+                  row(Icons.card_giftcard_rounded, 'Ввести промокод', promo),
+                  sep(),
+                  row(
+                    Icons.payments_rounded,
+                    'Заработать с нами',
+                    invite,
+                    subtitle: 'Другу — бонусные дни, вам — процент с каждой его оплаты',
+                  ),
+                ],
+              ),
+            ),
+            HamCard(
+              padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
+              child: Column(
+                children: [
+                  row(Icons.menu_book_rounded, 'Инструкции', () => _open(account.link('instructions'))),
+                  sep(),
+                  row(
+                    Icons.support_agent_rounded,
+                    'Поддержка',
+                    () => _open(account.link('support_bot')),
+                    subtitle: 'Напишите нам в Telegram-бота',
+                  ),
+                  sep(),
+                  row(Icons.language_rounded, 'Кабинет на сайте', () => _open(account.link('site'))),
+                ],
+              ),
+            ),
+            SizedBox(
+              width: double.infinity,
+              child: OutlinedButton(
+                style: OutlinedButton.styleFrom(
+                  foregroundColor: k.red,
+                  backgroundColor: k.redSoft,
+                  side: BorderSide(color: k.red),
+                  textStyle: const TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
+                ),
+                onPressed: logout,
+                child: const Text('Выйти из аккаунта'),
+              ),
+            ),
           ],
         ),
       ),

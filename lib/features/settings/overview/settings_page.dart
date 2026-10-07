@@ -1,11 +1,14 @@
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
 import 'package:go_router/go_router.dart';
-import 'package:hiddify/core/localization/translations.dart';
-import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
-import 'package:hiddify/core/router/go_router/helper/active_breakpoint_notifier.dart';
+import 'package:hiddify/core/haptic/haptic_service.dart';
+import 'package:hiddify/core/model/region.dart';
+import 'package:hiddify/core/preferences/general_preferences.dart';
+import 'package:hiddify/features/common/general_pref_tiles.dart';
+import 'package:hiddify/features/per_app_proxy/model/per_app_proxy_mode.dart';
+import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
-import 'package:hiddify/features/settings/notifier/reset_tunnel/reset_tunnel_notifier.dart';
+import 'package:hiddify/hamvpn/hamvpn_theme.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -22,6 +25,9 @@ enum ConfigOptionSection {
   };
 }
 
+/// ХамВПН: короткие и понятные настройки для обычного человека.
+/// Технические разделы Hiddify (DNS, входящие порты, TLS-трюки, WARP, ядро и т.п.)
+/// убраны из интерфейса — их значения по умолчанию подходят всем.
 class SettingsPage extends HookConsumerWidget {
   SettingsPage({super.key, String? section})
     : section = section != null ? ConfigOptionSection.values.byName(section) : null;
@@ -30,175 +36,162 @@ class SettingsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final t = ref.watch(translationsProvider).requireValue;
-    // final scrollController = useScrollController();
+    final k = HamTokens.of(context);
+    final ruDirect = ref.watch(ConfigOptions.region) == Region.ru;
+    final perApp = ref.watch(Preferences.perAppProxyMode);
 
-    // useMemoized(
-    //   () {
-    //     if (section != null) {
-    //       WidgetsBinding.instance.addPostFrameCallback(
-    //         (_) {
-    //           final box = section!.key.currentContext?.findRenderObject() as RenderBox?;
+    Widget group(String title, List<Widget> children) => Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(4, 0, 4, 8),
+          child: Text(title, style: TextStyle(color: k.textDim, fontSize: 14, fontWeight: FontWeight.w600)),
+        ),
+        Container(
+          margin: const EdgeInsets.only(bottom: 18),
+          decoration: BoxDecoration(
+            color: k.bgElev,
+            borderRadius: BorderRadius.circular(HamTokens.radius),
+            border: Border.all(color: k.border),
+          ),
+          clipBehavior: Clip.antiAlias,
+          child: Column(
+            children: [
+              for (var i = 0; i < children.length; i++) ...[
+                children[i],
+                if (i != children.length - 1) Divider(color: k.border, height: 1, indent: 16, endIndent: 16),
+              ],
+            ],
+          ),
+        ),
+      ],
+    );
 
-    //           final offset = box?.localToGlobal(Offset.zero);
-    //           if (offset == null) return;
-    //           final height = scrollController.offset + offset.dy - MediaQueryData.fromView(View.of(context)).padding.top - kToolbarHeight;
-    //           scrollController.animateTo(
-    //             height,
-    //             duration: const Duration(milliseconds: 500),
-    //             curve: Curves.decelerate,
-    //           );
-    //         },
-    //       );
-    //     }
-    //   },
-    // );
+    Widget toggle({
+      required IconData icon,
+      required String title,
+      required String subtitle,
+      required bool value,
+      required ValueChanged<bool> onChanged,
+    }) => SwitchListTile(
+      secondary: Icon(icon, color: k.accent),
+      title: Text(title, style: TextStyle(color: k.text, fontWeight: FontWeight.w500)),
+      subtitle: Text(subtitle, style: TextStyle(color: k.textDim, fontSize: 13.5)),
+      value: value,
+      onChanged: onChanged,
+    );
+
+    Widget link({required IconData icon, required String title, String? subtitle, required VoidCallback onTap}) =>
+        ListTile(
+          leading: Icon(icon, color: k.accent),
+          title: Text(title, style: TextStyle(color: k.text, fontWeight: FontWeight.w500)),
+          subtitle: subtitle == null ? null : Text(subtitle, style: TextStyle(color: k.textDim, fontSize: 13.5)),
+          trailing: Icon(Icons.chevron_right_rounded, color: k.textDim),
+          onTap: onTap,
+        );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(t.pages.settings.title),
-        actions: [
-          MenuAnchor(
-            menuChildren: <Widget>[
-              SubmenuButton(
-                menuChildren: <Widget>[
-                  MenuItemButton(
-                    onPressed: () async => await ref
-                        .read(dialogNotifierProvider.notifier)
-                        .showConfirmation(
-                          title: t.common.msg.import.confirm,
-                          message: t.dialogs.confirmation.settings.import.msg,
-                        )
-                        .then((shouldImport) async {
-                          if (shouldImport) {
-                            await ref.read(configOptionNotifierProvider.notifier).importFromClipboard();
-                          }
-                        }),
-                    child: Text(t.pages.settings.options.import.clipboard),
-                  ),
-                  MenuItemButton(
-                    onPressed: () async => await ref
-                        .read(dialogNotifierProvider.notifier)
-                        .showConfirmation(
-                          title: t.common.msg.import.confirm,
-                          message: t.dialogs.confirmation.settings.import.msg,
-                        )
-                        .then((shouldImport) async {
-                          if (shouldImport) {
-                            await ref.read(configOptionNotifierProvider.notifier).importFromJsonFile();
-                          }
-                        }),
-                    child: Text(t.pages.settings.options.import.file),
-                  ),
-                ],
-                child: Text(t.common.import),
-              ),
-              SubmenuButton(
-                menuChildren: <Widget>[
-                  MenuItemButton(
-                    onPressed: () async => await ref.read(configOptionNotifierProvider.notifier).exportJsonClipboard(),
-                    child: Text(t.pages.settings.options.export.anonymousToClipboard),
-                  ),
-                  MenuItemButton(
-                    onPressed: () async => await ref.read(configOptionNotifierProvider.notifier).exportJsonFile(),
-                    child: Text(t.pages.settings.options.export.anonymousToFile),
-                  ),
-                  const PopupMenuDivider(),
-                  MenuItemButton(
-                    onPressed: () async => await ref
-                        .read(configOptionNotifierProvider.notifier)
-                        .exportJsonClipboard(excludePrivate: false),
-                    child: Text(t.pages.settings.options.export.allToClipboard),
-                  ),
-                  MenuItemButton(
-                    onPressed: () async =>
-                        await ref.read(configOptionNotifierProvider.notifier).exportJsonFile(excludePrivate: false),
-                    child: Text(t.pages.settings.options.export.allToFile),
-                  ),
-                ],
-                child: Text(t.common.export),
-              ),
-              const PopupMenuDivider(),
-              MenuItemButton(
-                child: Text(t.pages.settings.options.reset),
-                onPressed: () async => await ref.read(configOptionNotifierProvider.notifier).resetOption(),
-              ),
-            ],
-            builder: (context, controller, child) => IconButton(
-              onPressed: () {
-                if (controller.isOpen) {
-                  controller.close();
-                } else {
-                  controller.open();
-                }
-              },
-              icon: const Icon(Icons.more_vert_rounded),
-            ),
-          ),
-          const Gap(8),
-        ],
-      ),
+      appBar: AppBar(title: const Text('Настройки')),
       body: ListView(
+        padding: const EdgeInsets.fromLTRB(14, 18, 14, 40),
         children: [
-          // TipCard(message: t.settings.experimentalMsg),
-          SettingsSection(
-            title: t.pages.settings.general.title,
-            icon: Icons.layers_rounded,
-            namedLocation: context.namedLocation('general'),
-          ),
-          SettingsSection(
-            title: t.pages.settings.routing.title,
-            icon: Icons.route_rounded,
-            namedLocation: context.namedLocation('routeOptions'),
-          ),
-          SettingsSection(
-            title: t.pages.settings.dns.title,
-            icon: Icons.dns_rounded,
-            namedLocation: context.namedLocation('dnsOptions'),
-          ),
-          SettingsSection(
-            title: t.pages.settings.inbound.title,
-            icon: Icons.input_rounded,
-            namedLocation: context.namedLocation('inboundOptions'),
-          ),
-          SettingsSection(
-            title: t.pages.settings.tlsTricks.title,
-            icon: Icons.content_cut_rounded,
-            namedLocation: context.namedLocation('tlsTricks'),
-          ),
-          SettingsSection(
-            title: t.pages.settings.warp.title,
-            icon: Icons.cloud_rounded,
-            namedLocation: context.namedLocation('warpOptions'),
-          ),
-          if (PlatformUtils.isIOS)
-            Material(
-              child: ListTile(
-                title: Text(t.pages.settings.resetTunnel),
-                leading: const Icon(Icons.autorenew_rounded),
+          group('Основное', [
+            const LocalePrefTile(),
+            const ThemeModePrefTile(),
+            toggle(
+              icon: Icons.vibration_rounded,
+              title: 'Вибрация при нажатии',
+              subtitle: 'Лёгкий отклик, когда включаете и выключаете VPN',
+              value: ref.watch(hapticServiceProvider),
+              onChanged: ref.read(hapticServiceProvider.notifier).updatePreference,
+            ),
+          ]),
+          group('Работа VPN', [
+            toggle(
+              icon: Icons.flag_rounded,
+              title: 'Российские сайты — без VPN',
+              subtitle: 'Банки, Госуслуги, маркетплейсы открываются напрямую и быстрее',
+              value: ruDirect,
+              onChanged: (v) async {
+                await ref.read(ConfigOptions.directDnsAddress.notifier).reset();
+                await ref.read(ConfigOptions.region.notifier).update(v ? Region.ru : Region.other);
+              },
+            ),
+            toggle(
+              icon: Icons.block_rounded,
+              title: 'Блокировать рекламу',
+              subtitle: 'Отсекает известные рекламные адреса',
+              value: ref.watch(ConfigOptions.blockAds),
+              onChanged: ref.read(ConfigOptions.blockAds.notifier).update,
+            ),
+            if (PlatformUtils.isAndroid)
+              link(
+                icon: Icons.apps_rounded,
+                title: 'Приложения без VPN',
+                subtitle: perApp == PerAppProxyMode.off
+                    ? 'Сейчас через VPN работают все приложения'
+                    : 'Выбраны приложения, которые работают мимо VPN',
                 onTap: () async {
-                  await ref.read(resetTunnelNotifierProvider.notifier).run();
+                  if (perApp == PerAppProxyMode.off) {
+                    await ref.read(Preferences.perAppProxyMode.notifier).update(PerAppProxyMode.exclude);
+                  }
+                  if (context.mounted) context.goNamed('perAppProxy');
                 },
               ),
+            if (PlatformUtils.isAndroid && perApp != PerAppProxyMode.off)
+              link(
+                icon: Icons.restart_alt_rounded,
+                title: 'Снова пустить всё через VPN',
+                onTap: () => ref.read(Preferences.perAppProxyMode.notifier).update(PerAppProxyMode.off),
+              ),
+            toggle(
+              icon: Icons.speed_rounded,
+              title: 'Скорость в уведомлении',
+              subtitle: 'Показывать скорость загрузки в шторке, пока VPN включён',
+              value: ref.watch(Preferences.dynamicNotification),
+              onChanged: ref.read(Preferences.dynamicNotification.notifier).update,
             ),
-          if (Breakpoint(context).isMobile()) ...[
-            SettingsSection(
-              title: t.pages.logs.title,
+          ]),
+          group('Помощь', [
+            link(
               icon: Icons.description_rounded,
-              namedLocation: context.namedLocation('logs'),
+              title: 'Журнал работы',
+              subtitle: 'Пригодится поддержке, если что-то не подключается',
+              onTap: () => context.goNamed('logs'),
             ),
-            SettingsSection(
-              title: t.pages.about.title,
-              icon: Icons.info_rounded,
-              namedLocation: context.namedLocation('about'),
+            link(icon: Icons.info_rounded, title: 'О программе', onTap: () => context.goNamed('about')),
+            link(
+              icon: Icons.settings_backup_restore_rounded,
+              title: 'Сбросить настройки',
+              subtitle: 'Вернуть всё как было после установки',
+              onTap: () async {
+                final ok = await showDialog<bool>(
+                  context: context,
+                  builder: (ctx) => AlertDialog(
+                    title: const Text('Сбросить настройки?'),
+                    content: const Text('Аккаунт и подписка останутся, вернутся только настройки приложения.'),
+                    actions: [
+                      OutlinedButton(onPressed: () => Navigator.pop(ctx, false), child: const Text('Отмена')),
+                      FilledButton(onPressed: () => Navigator.pop(ctx, true), child: const Text('Сбросить')),
+                    ],
+                  ),
+                );
+                if (ok == true) {
+                  await ref.read(configOptionNotifierProvider.notifier).resetOption();
+                  // для России российские сайты по-прежнему напрямую
+                  await ref.read(ConfigOptions.region.notifier).update(Region.ru);
+                }
+              },
             ),
-          ],
+          ]),
+          const Gap(8),
         ],
       ),
     );
   }
 }
 
+/// Оставлено для совместимости с другими экранами Hiddify.
 class SettingsSection extends HookConsumerWidget {
   const SettingsSection({super.key, required this.title, required this.icon, required this.namedLocation});
 

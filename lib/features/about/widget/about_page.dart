@@ -11,7 +11,8 @@ import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/widget/adaptive_icon.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_notifier.dart';
 import 'package:hiddify/features/app_update/notifier/app_update_state.dart';
-import 'package:hiddify/gen/assets.gen.dart';
+import 'package:hiddify/hamvpn/hamvpn_api.dart';
+import 'package:hiddify/hamvpn/info_pages.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -89,7 +90,7 @@ class AboutPage extends HookConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Assets.images.logo.svg(width: 64, height: 64),
+                  Image.asset('assets/images/hamvpn_logo.png', width: 64, height: 64),
                   const Gap(16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -107,33 +108,41 @@ class AboutPage extends HookConsumerWidget {
             delegate: SliverChildListDelegate([
               ...conditionalTiles,
               if (conditionalTiles.isNotEmpty) const Divider(),
+              // ХамВПН: свои ссылки и документы прямо в приложении
               ListTile(
-                title: Text(t.pages.about.sourceCode),
+                leading: const Icon(Icons.language_rounded),
+                title: const Text('Перейти на официальный сайт'),
+                subtitle: const Text('hamvpn.net'),
                 trailing: const Icon(FluentIcons.open_24_regular),
-                onTap: () async {
-                  await UriUtils.tryLaunch(Uri.parse(Constants.githubUrl));
-                },
+                onTap: () async => UriUtils.tryLaunch(Uri.parse(kHamSiteUrl)),
+              ),
+              if (kHamTelegramChannelUrl.isNotEmpty)
+                ListTile(
+                  leading: const Icon(Icons.campaign_rounded),
+                  title: const Text('Наш Telegram-канал'),
+                  subtitle: const Text('Новости, статус серверов, акции'),
+                  trailing: const Icon(FluentIcons.open_24_regular),
+                  onTap: () async => UriUtils.tryLaunch(Uri.parse(kHamTelegramChannelUrl)),
+                ),
+              ListTile(
+                leading: const Icon(Icons.gavel_rounded),
+                title: const Text('Условия использования'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => HamInfoPage.open(context, HamInfo.terms),
               ),
               ListTile(
-                title: Text(t.pages.about.telegramChannel),
-                trailing: const Icon(FluentIcons.open_24_regular),
-                onTap: () async {
-                  await UriUtils.tryLaunch(Uri.parse(Constants.telegramChannelUrl));
-                },
+                leading: const Icon(Icons.privacy_tip_rounded),
+                title: const Text('Политика конфиденциальности'),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => HamInfoPage.open(context, HamInfo.privacy),
               ),
+              const Divider(),
+              // Требование лицензии Hiddify: указать, что приложение основано на нём, и дать ссылку на лицензию
               ListTile(
-                title: Text(t.pages.about.termsAndConditions),
-                trailing: const Icon(FluentIcons.open_24_regular),
-                onTap: () async {
-                  await UriUtils.tryLaunch(Uri.parse(Constants.termsAndConditionsUrl));
-                },
-              ),
-              ListTile(
-                title: Text(t.pages.about.privacyPolicy),
-                trailing: const Icon(FluentIcons.open_24_regular),
-                onTap: () async {
-                  await UriUtils.tryLaunch(Uri.parse(Constants.privacyPolicyUrl));
-                },
+                dense: true,
+                title: const Text('Основано на открытом проекте Hiddify'),
+                subtitle: const Text('Лицензия GPL v3 с дополнительными условиями'),
+                onTap: () async => UriUtils.tryLaunch(Uri.parse(Constants.licenseUrl)),
               ),
             ]),
           ),

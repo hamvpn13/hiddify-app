@@ -1,5 +1,6 @@
 import 'dart:io';
 
+import 'package:hiddify/core/analytics/analytics_controller.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
 import 'package:hiddify/core/model/region.dart';
 import 'package:hiddify/core/preferences/general_preferences.dart';
@@ -82,6 +83,10 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
     await ref.read(ConfigOptions.region.notifier).update(Region.ru);
     try {
       await ref.read(localePreferencesProvider.notifier).changeLocale(AppLocale.ru);
+    } catch (_) {}
+    // Никакой статистики использования наружу (Hiddify по умолчанию шлёт отчёты об ошибках)
+    try {
+      await ref.read(analyticsControllerProvider.notifier).disableAnalytics();
     } catch (_) {}
   }
 

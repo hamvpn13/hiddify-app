@@ -62,7 +62,8 @@ class ConnectionButton extends HookConsumerWidget {
     //   //   },
     //   // );
 
-    const buttonTheme = ConnectionButtonTheme.light;
+    // ХамВПН: цвета кнопки из темы (как на сайте), а не фиксированные цвета Hiddify
+    final buttonTheme = Theme.of(context).extension<ConnectionButtonTheme>() ?? ConnectionButtonTheme.light;
 
     //   // return CircleDesignWidget(
     //   //   onTap: switch (connectionStatus) {
@@ -181,7 +182,7 @@ class ConnectionButton extends HookConsumerWidget {
         AsyncData(value: _) => true,
         _ => false,
       },
-      useImage: today.day >= 19 && today.day <= 23 && today.month == 3,
+      useImage: false, // праздничная картинка Hiddify (Навруз) нам не нужна
       secureLabel: secureLabel,
     );
   }

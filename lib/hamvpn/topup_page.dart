@@ -123,18 +123,27 @@ class HamTopupPage extends HookConsumerWidget {
             style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
           ),
           const Gap(20),
-          Text('На какой срок', style: theme.textTheme.titleSmall),
+          _StepLabel('1. Выберите срок'),
           const Gap(10),
-          for (final p in plans.value!)
-            _PlanTile(
-              months: (p['months'] as num).toInt(),
-              amount: (p['amount_rub'] as num).toDouble(),
-              discount: (p['discount_pct'] as num).toInt(),
-              selected: months.value == (p['months'] as num).toInt(),
-              onTap: () => months.value = (p['months'] as num).toInt(),
-            ),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              for (final p in plans.value!) ...[
+                Expanded(
+                  child: _PlanTile(
+                    months: (p['months'] as num).toInt(),
+                    amount: (p['amount_rub'] as num).toDouble(),
+                    discount: (p['discount_pct'] as num).toInt(),
+                    selected: months.value == (p['months'] as num).toInt(),
+                    onTap: () => months.value = (p['months'] as num).toInt(),
+                  ),
+                ),
+                if (p != plans.value!.last) const Gap(10),
+              ],
+            ],
+          ),
           const Gap(16),
-          Text('Как оплатить', style: theme.textTheme.titleSmall),
+          _StepLabel('2. Способ оплаты'),
           const Gap(10),
           if (methods.value.isEmpty)
             const Text('Онлайн-оплата сейчас недоступна. Напишите в поддержку через бота.')
@@ -174,18 +183,12 @@ class HamTopupPage extends HookConsumerWidget {
               ),
             ),
           SizedBox(
-            height: 54,
+            width: double.infinity,
             child: FilledButton(
-              style: FilledButton.styleFrom(
-                backgroundColor: HamColors.gold,
-                foregroundColor: HamColors.night,
-                shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-                textStyle: const TextStyle(fontSize: 17, fontWeight: FontWeight.w700),
-              ),
               onPressed: paying.value || methods.value.isEmpty ? null : pay,
               child: paying.value
-                  ? const SizedBox(width: 22, height: 22, child: CircularProgressIndicator(strokeWidth: 2.5))
-                  : Text(waitingId.value == null ? 'Оплатить' : 'Открыть оплату ещё раз'),
+                  ? const SizedBox(width: 20, height: 20, child: CircularProgressIndicator(strokeWidth: 2.5))
+                  : Text(waitingId.value == null ? 'Перейти к оплате' : 'Открыть оплату ещё раз'),
             ),
           ),
           const Gap(12),
@@ -202,6 +205,19 @@ class HamTopupPage extends HookConsumerWidget {
   }
 }
 
+class _StepLabel extends StatelessWidget {
+  const _StepLabel(this.text);
+
+  final String text;
+
+  @override
+  Widget build(BuildContext context) {
+    final k = HamTokens.of(context);
+    return Text(text, style: TextStyle(color: k.textDim, fontSize: 15, fontWeight: FontWeight.w600));
+  }
+}
+
+/// Тариф — как .plan-card на сайте: крупный кружок, при выборе рамка акцентом и «ВЫБРАНО».
 class _PlanTile extends StatelessWidget {
   const _PlanTile({
     required this.months,
@@ -219,49 +235,45 @@ class _PlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final k = HamTokens.of(context);
     final title = switch (months) {
       1 => '1 месяц',
       3 => '3 месяца',
       6 => '6 месяцев',
       _ => '$months мес.',
     };
-    return Padding(
-      padding: const EdgeInsets.only(bottom: 10),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(16),
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 160),
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            color: selected ? HamColors.rose.withValues(alpha: .14) : theme.colorScheme.surfaceContainer,
-            border: Border.all(color: selected ? HamColors.rose : Colors.transparent, width: 1.5),
-          ),
-          child: Row(
-            children: [
-              Icon(
-                selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
-                color: selected ? HamColors.rose : theme.colorScheme.outline,
+    return InkWell(
+      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 150),
+        padding: const EdgeInsets.fromLTRB(8, 14, 8, 12),
+        decoration: BoxDecoration(
+          color: selected ? k.accentSoft : k.bgSunken,
+          borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+          border: Border.all(color: selected ? k.accent : k.border, width: 2),
+        ),
+        child: Column(
+          children: [
+            Icon(
+              selected ? Icons.radio_button_checked_rounded : Icons.radio_button_off_rounded,
+              color: selected ? k.accentFill : k.textDim,
+              size: 24,
+            ),
+            const Gap(6),
+            Text(title, style: TextStyle(color: k.text, fontWeight: FontWeight.w700, fontSize: 15.5)),
+            const Gap(2),
+            Text(hamRub(amount), style: TextStyle(color: k.text, fontSize: 15)),
+            if (discount > 0)
+              Text('скидка $discount%', style: TextStyle(color: k.green, fontSize: 12.5, fontWeight: FontWeight.w600)),
+            if (selected) ...[
+              const Gap(4),
+              Text(
+                'ВЫБРАНО',
+                style: TextStyle(color: k.accent, fontSize: 11, fontWeight: FontWeight.w700, letterSpacing: .6),
               ),
-              const Gap(12),
-              Expanded(
-                child: Text(title, style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w600)),
-              ),
-              if (discount > 0)
-                Container(
-                  margin: const EdgeInsets.only(right: 10),
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(color: HamColors.ok, borderRadius: BorderRadius.circular(8)),
-                  child: Text(
-                    '−$discount%',
-                    style: const TextStyle(color: Colors.white, fontWeight: FontWeight.w700, fontSize: 12),
-                  ),
-                ),
-              Text(hamRub(amount), style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700)),
             ],
-          ),
+          ],
         ),
       ),
     );
@@ -278,23 +290,23 @@ class _MethodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final k = HamTokens.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(14),
+      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
       onTap: onTap,
       child: AnimatedContainer(
-        duration: const Duration(milliseconds: 160),
+        duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(14),
-          color: selected ? HamColors.rose.withValues(alpha: .14) : theme.colorScheme.surfaceContainer,
-          border: Border.all(color: selected ? HamColors.rose : Colors.transparent, width: 1.5),
+          color: selected ? k.accentSoft : k.bgSunken,
+          borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+          border: Border.all(color: selected ? k.accent : k.border, width: 2),
         ),
         child: Column(
           children: [
-            Icon(icon, color: selected ? HamColors.rose : theme.colorScheme.onSurfaceVariant),
+            Icon(icon, color: selected ? k.accent : k.textDim),
             const Gap(6),
-            Text(title, style: const TextStyle(fontWeight: FontWeight.w600)),
+            Text(title, style: TextStyle(color: k.text, fontWeight: FontWeight.w600)),
           ],
         ),
       ),
@@ -310,20 +322,21 @@ class _Done extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
+    final k = HamTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            const Icon(Icons.check_circle_rounded, color: HamColors.ok, size: 72),
+            Icon(Icons.check_circle_rounded, color: k.green, size: 72),
             const Gap(16),
-            Text('Оплата получена!', style: theme.textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w700)),
+            Text('Оплата получена!', style: TextStyle(color: k.text, fontSize: 24, fontWeight: FontWeight.w700)),
             const Gap(8),
             Text(
               'Баланс: ${hamRub(balance)}. Хватит примерно на ${hamDays(daysLeft)}.',
               textAlign: TextAlign.center,
+              style: TextStyle(color: k.textDim, fontSize: 16),
             ),
             const Gap(24),
             FilledButton(onPressed: () => Navigator.of(context).pop(), child: const Text('Готово')),

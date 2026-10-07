@@ -1,6 +1,7 @@
 import 'package:dartx/dartx.dart';
 import 'package:flutter/material.dart';
 import 'package:gap/gap.dart';
+import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/app_info/app_info_provider.dart';
 import 'package:hiddify/core/localization/translations.dart';
 import 'package:hiddify/core/router/bottom_sheets/bottom_sheets_notifier.dart';
@@ -35,7 +36,7 @@ class HomePage extends HookConsumerWidget {
           children: [
             Image.asset('assets/images/hamvpn_logo.png', height: 28),
             const Gap(10),
-            const Text('ХамВПН', style: TextStyle(fontWeight: FontWeight.w800)),
+            const Text('Хам VPN', style: TextStyle(fontWeight: FontWeight.w700)),
           ],
         ),
         actions: [
@@ -51,37 +52,18 @@ class HomePage extends HookConsumerWidget {
           //     material: (context, platform) => MaterialIconButtonData(
           //           tooltip: t.profile.add.buttonText,
           //         )),
-          Semantics(
-            key: const ValueKey("profile_quick_settings"),
-            label: t.pages.home.quickSettings,
-            child: IconButton(
-              icon: Icon(Icons.tune_rounded, color: theme.colorScheme.primary),
-              onPressed: () => ref.read(bottomSheetsNotifierProvider.notifier).showQuickSettings(),
-            ),
-          ),
-          const Gap(8),
+          // ХамВПН: переключатель «прокси / VPN» Hiddify убран; здесь — вход в настройки
           IconButton(
-            tooltip: 'Аккаунт',
-            icon: Icon(Icons.account_circle_rounded, color: theme.colorScheme.primary),
-            onPressed: () => HamAccountPage.open(context),
+            tooltip: 'Настройки',
+            icon: Icon(Icons.settings_rounded, color: theme.colorScheme.onSurfaceVariant),
+            onPressed: () => context.goNamed('settings'),
           ),
           const Gap(8),
         ],
       ),
+      // фон как на сайте — ровный, без карты мира Hiddify
       body: Container(
-        decoration: BoxDecoration(
-          image: DecorationImage(
-            image: const AssetImage('assets/images/world_map.png'), // Replace with your image path
-            fit: BoxFit.cover,
-            opacity: 0.09,
-            colorFilter: theme.brightness == Brightness.dark
-                ? ColorFilter.mode(Colors.white.withValues(alpha: .15), BlendMode.srcIn) //
-                : ColorFilter.mode(
-                    Colors.grey.withValues(alpha: 1),
-                    BlendMode.srcATop,
-                  ), // Apply white tint in dark mode
-          ),
-        ),
+        color: theme.scaffoldBackgroundColor,
         child: Stack(
           alignment: Alignment.center,
           children: [

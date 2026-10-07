@@ -22,6 +22,7 @@ import 'package:hiddify/features/settings/overview/sections/route_options_page.d
 import 'package:hiddify/features/settings/overview/sections/tls_tricks_page.dart';
 import 'package:hiddify/features/settings/overview/sections/warp_options_page.dart';
 import 'package:hiddify/features/settings/overview/settings_page.dart';
+import 'package:hiddify/hamvpn/account_widgets.dart';
 import 'package:hiddify/hamvpn/hamvpn_account.dart';
 import 'package:hiddify/hamvpn/login_page.dart';
 import 'package:hiddify/utils/utils.dart';
@@ -32,6 +33,7 @@ part 'routing_config_notifier.g.dart';
 // each branch in go router has its own focus scope
 final branchesScope = <String, FocusScopeNode>{
   'home': FocusScopeNode(),
+  'account': FocusScopeNode(),
   'profiles': FocusScopeNode(),
   'settings': FocusScopeNode(),
   'logs': FocusScopeNode(),
@@ -43,13 +45,14 @@ final loadingConfig = RoutingConfig(
   routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
 );
 
+// ХамВПН: в нижнем меню «Главная» и «Аккаунт»; настройки открываются значком на главном экране.
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
-    ? ['home', 'settings'][index]
-    : ['home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'][index];
+    ? ['home', 'account', 'settings'][index]
+    : ['home', if (showProfilesAction) 'profiles', 'account', 'settings', 'logs', 'about'][index];
 
 int getIndexOfBranch(bool isMobileBreakpoint, bool showProfilesAction, String name) => isMobileBreakpoint
-    ? ['home', 'settings'].indexOf(name)
-    : ['home', if (showProfilesAction) 'profiles', 'settings', 'logs', 'about'].indexOf(name);
+    ? ['home', 'account', 'settings'].indexOf(name)
+    : ['home', if (showProfilesAction) 'profiles', 'account', 'settings', 'logs', 'about'].indexOf(name);
 
 @Riverpod(keepAlive: true)
 class RoutingConfigNotifier extends _$RoutingConfigNotifier {
@@ -157,6 +160,15 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                   ),
                 ],
               ),
+            StatefulShellBranch(
+              routes: <GoRoute>[
+                GoRoute(
+                  name: 'account',
+                  path: '/account',
+                  builder: (_, _) => FocusScope(node: branchesScope['account'], child: const HamAccountPage()),
+                ),
+              ],
+            ),
             StatefulShellBranch(
               routes: <GoRoute>[
                 GoRoute(
