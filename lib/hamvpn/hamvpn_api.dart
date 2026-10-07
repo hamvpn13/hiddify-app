@@ -6,7 +6,7 @@ const String kHamSiteUrl = 'https://hamvpn.net';
 const String kHamApiBase = '$kHamSiteUrl/api/app/v1';
 
 /// Telegram-канал ХамВПН (пусто — пункт в «О программе» не показывается).
-const String kHamTelegramChannelUrl = '';
+const String kHamTelegramChannelUrl = 'https://t.me/hamvpn13_bot';
 
 /// Ошибка API с текстом, который можно сразу показать человеку.
 class HamApiException implements Exception {

@@ -119,8 +119,8 @@ class AboutPage extends HookConsumerWidget {
               if (kHamTelegramChannelUrl.isNotEmpty)
                 ListTile(
                   leading: const Icon(Icons.campaign_rounded),
-                  title: const Text('Наш Telegram-канал'),
-                  subtitle: const Text('Новости, статус серверов, акции'),
+                  title: const Text('Мы в Telegram'),
+                  subtitle: const Text('@hamvpn13_bot — поддержка, баланс, новости'),
                   trailing: const Icon(FluentIcons.open_24_regular),
                   onTap: () async => UriUtils.tryLaunch(Uri.parse(kHamTelegramChannelUrl)),
                 ),
