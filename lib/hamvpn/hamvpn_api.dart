@@ -95,7 +95,14 @@ class HamApi {
   Future<Map<String, dynamic>> plans(String token) => _call(() => _dio.get('/plans', options: _auth(token)));
 
   Future<Map<String, dynamic>> topup(String token, int months, String method) =>
-      _call(() => _dio.post('/topup', data: {'months': months, 'method': method}, options: _auth(token)));
+      _call(
+        () => _dio.post(
+          '/topup',
+          data: {'months': months, 'method': method},
+          // платёжный сервис иногда отвечает долго — ждём дольше обычного
+          options: _auth(token).copyWith(receiveTimeout: const Duration(seconds: 60)),
+        ),
+      );
 
   Future<Map<String, dynamic>> topupStatus(String token, int requestId) =>
       _call(() => _dio.get('/topup/$requestId', options: _auth(token)));
