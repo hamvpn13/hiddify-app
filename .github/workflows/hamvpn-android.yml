@@ -1,6 +1,9 @@
-name: HamVPN Android APK
+name: HamVPN Android + Windows
 
-# Сборка тестовой APK ХамВПН. Запуск вручную: Actions -> HamVPN Android APK -> Run workflow
+# Сборка ХамВПН сразу для Android (APK) и Windows (установщик).
+# Запуск вручную: Actions -> HamVPN Android + Windows -> Run workflow.
+# С галочкой publish обе версии выкладываются вместе (релиз app-latest, общий номер
+# сборки) — сайт забирает их, и обновление приходит и на телефоны, и на компьютеры.
 on:
   workflow_dispatch:
     inputs:
@@ -101,31 +104,6 @@ jobs:
           cp $D/app-release.apk             out/HamVPN-universal.apk
           ls -la out
 
-      # Описание версии для сайта: по нему приложение понимает, что пора обновиться
-      - name: version.json
-        env:
-          NOTES: ${{ inputs.notes }}
-          FORCE: ${{ inputs.force }}
-        run: |
-          python3 - <<'PY'
-          import hashlib, json, os
-          files = {}
-          for abi in ("arm64", "arm7", "x86_64", "universal"):
-              name = f"HamVPN-{abi}.apk"
-              data = open(f"out/{name}", "rb").read()
-              files[abi] = {"file": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
-          info = {
-              "version": os.environ["APP_VERSION"],
-              "build": int(os.environ["BUILD"]),
-              "notes": os.environ.get("NOTES", "").strip(),
-              "force": os.environ.get("FORCE") == "true",
-              "commit": os.environ["GITHUB_SHA"][:7],
-              "files": files,
-          }
-          json.dump(info, open("out/version.json", "w"), ensure_ascii=False, indent=1)
-          print(json.dumps(info, ensure_ascii=False, indent=1))
-          PY
-
       # Каждый вариант — отдельным файлом для скачивания
       - name: Upload arm64 (для большинства телефонов)
         uses: actions/upload-artifact@v6
@@ -159,13 +137,141 @@ jobs:
           compression-level: 0
           retention-days: 14
 
-      # Публикация: файлы попадают в релиз app-latest, сайт забирает их скриптом update_app.py
+      - name: Upload all APKs for publishing
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-out
+          path: out/*.apk
+          compression-level: 0
+          retention-days: 3
+
+  windows:
+    runs-on: windows-latest
+    env:
+      IS_GITHUB_ACTIONS: 1
+      CHANNEL: prod
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: Prepare (deps, codegen, core libs)
+        run: make windows-prepare
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # тот же номер, что у Android в этом запуске — одно обновление для всех
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          echo "Версия $NAME, сборка $BUILD"
+
+      - name: Build Windows
+        run: flutter build windows --release --target lib/main.dart --build-name "$APP_VERSION" --build-number "$BUILD"
+
+      - name: Add Visual C++ runtime
+        shell: pwsh
+        run: |
+          # без них программа не запустится на компьютере, где нет Visual C++ Redistributable
+          $rel = "build\windows\x64\runner\Release"
+          foreach ($f in "msvcp140.dll","vcruntime140.dll","vcruntime140_1.dll") {
+            Copy-Item "$env:WINDIR\System32\$f" $rel -Force
+          }
+          Get-ChildItem $rel
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y --no-progress | Out-Null
+            $env:Path += ";${env:ProgramFiles(x86)}\Inno Setup 6"
+          }
+          $src = (Resolve-Path "build\windows\x64\runner\Release").Path
+          $out = Join-Path $PWD "out"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          iscc "/DAppVersion=$env:APP_VERSION" "/DAppBuild=$env:BUILD" "/DSourceDir=$src" "/O$out" windows\packaging\hamvpn\HamVPN.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path "$src\*" -DestinationPath out\HamVPN-Windows-Portable.zip
+          Get-ChildItem out
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: HamVPN-Windows-Setup
+          path: out/HamVPN-Windows-Setup.exe
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload portable
+        uses: actions/upload-artifact@v6
+        with:
+          name: HamVPN-Windows-Portable
+          path: out/HamVPN-Windows-Portable.zip
+          compression-level: 0
+          retention-days: 14
+
+  # Публикация: обе версии вместе в релиз app-latest, сайт забирает их скриптом update_app.py
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [apk, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: android-out
+          path: out
+      - uses: actions/download-artifact@v7
+        with:
+          name: HamVPN-Windows-Setup
+          path: out
+
+      - name: version.json
+        env:
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          export BUILD APP_VERSION="$NAME"
+          ls -la out
+          python3 - <<'PY'
+          import hashlib, json, os
+          files = {}
+          for key, name in (("arm64", "HamVPN-arm64.apk"), ("arm7", "HamVPN-arm7.apk"),
+                            ("x86_64", "HamVPN-x86_64.apk"), ("universal", "HamVPN-universal.apk"),
+                            ("windows", "HamVPN-Windows-Setup.exe")):
+              data = open(f"out/{name}", "rb").read()
+              files[key] = {"file": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+          info = {
+              "version": os.environ["APP_VERSION"],
+              "build": int(os.environ["BUILD"]),
+              "notes": os.environ.get("NOTES", "").strip(),
+              "force": os.environ.get("FORCE") == "true",
+              "commit": os.environ["GITHUB_SHA"][:7],
+              "files": files,
+          }
+          json.dump(info, open("out/version.json", "w"), ensure_ascii=False, indent=1)
+          print(json.dumps(info, ensure_ascii=False, indent=1))
+          PY
+
       - name: Publish release app-latest
-        if: ${{ inputs.publish }}
         env:
           GH_TOKEN: ${{ github.token }}
         run: |
           gh release delete app-latest --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
-          gh release create app-latest out/*.apk out/version.json -R "$GITHUB_REPOSITORY" \
+          gh release create app-latest out/*.apk out/*.exe out/version.json -R "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "ХамВПН $APP_VERSION" \
-            --notes "Сборка $BUILD для сайта hamvpn.net/download" --prerelease
+            --notes "Сборка $BUILD (Android + Windows) для сайта hamvpn.net/download" --prerelease

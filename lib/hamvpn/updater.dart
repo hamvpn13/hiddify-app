@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
+import 'package:hiddify/features/window/notifier/window_notifier.dart';
 import 'package:hiddify/hamvpn/hamvpn_account.dart';
 import 'package:hiddify/hamvpn/hamvpn_api.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
@@ -15,8 +16,12 @@ import 'package:url_launcher/url_launcher.dart';
 /// Обновление приложения с нашего сайта hamvpn.net (не через Google Play).
 ///
 /// Сайт отвечает на /api/app/v1/update, есть ли версия новее установленной,
-/// и даёт ссылку на APK именно для процессора этого телефона. Приложение
-/// скачивает файл само и открывает системный установщик — данные и вход сохраняются.
+/// и даёт ссылку на файл именно для этого устройства:
+///  * Android — APK под процессор телефона, открывается системный установщик;
+///  * Windows — установщик HamVPN-Windows-Setup.exe, ставится тихо поверх
+///    старой версии и сам запускает программу заново.
+/// Обе версии выпускаются одной сборкой (номер сборки общий), поэтому одно
+/// обновление приходит сразу и на телефоны, и на компьютеры. Вход и настройки сохраняются.
 class HamUpdateInfo {
   HamUpdateInfo(Map<String, dynamic> d)
     : version = (d['version'] as String?) ?? '',
@@ -52,6 +57,7 @@ class HamUpdater {
 
   /// Какой APK нужен этому устройству — тот же выбор, что и на странице скачивания.
   static Future<String> _abi() async {
+    if (Platform.isWindows) return 'windows';
     try {
       final abis = ((await _channel.invokeMethod<List<dynamic>>('abis')) ?? const []).cast<String>();
       final first = abis.isEmpty ? '' : abis.first;
@@ -68,7 +74,9 @@ class HamUpdater {
   }
 
   static Future<HamUpdateInfo?> fetch(WidgetRef ref) async {
-    final data = await ref.read(hamApiProvider).update(await _abi(), await currentBuild());
+    final data = await ref
+        .read(hamApiProvider)
+        .update(await _abi(), await currentBuild(), platform: Platform.isWindows ? 'windows' : 'android');
     if (data['available'] != true) return null;
     final info = HamUpdateInfo(data);
     return info.url.isEmpty ? null : info;
@@ -76,7 +84,7 @@ class HamUpdater {
 
   /// Тихая проверка при запуске и возврате в приложение (не чаще раза в 3 часа).
   static Future<void> autoCheck(BuildContext context, WidgetRef ref) async {
-    if (!Platform.isAndroid || _dialogOpen) return;
+    if (!(Platform.isAndroid || Platform.isWindows) || _dialogOpen) return;
     final now = DateTime.now();
     if (_lastAutoCheck != null && now.difference(_lastAutoCheck!) < const Duration(hours: 3)) return;
     _lastAutoCheck = now;
@@ -144,7 +152,7 @@ class HamUpdater {
         ),
       );
       if (ok == true) {
-        if (context.mounted) await _downloadAndInstall(context, info);
+        if (context.mounted) await _downloadAndInstall(context, ref, info);
       } else {
         await ref.read(HamUpdatePrefs.skippedBuild.notifier).update(info.build);
         await ref.read(HamUpdatePrefs.skippedAt.notifier).update(DateTime.now().millisecondsSinceEpoch);
@@ -157,9 +165,11 @@ class HamUpdater {
   static Future<void> _openInBrowser() =>
       launchUrl(Uri.parse('$kHamSiteUrl/download'), mode: LaunchMode.externalApplication);
 
-  static Future<void> _downloadAndInstall(BuildContext context, HamUpdateInfo info) async {
+  static Future<void> _downloadAndInstall(BuildContext context, WidgetRef ref, HamUpdateInfo info) async {
     // Android просит один раз разрешить установку из этого приложения
-    final can = await _channel.invokeMethod<bool>('canInstall').catchError((_) => true) ?? true;
+    final can = Platform.isWindows
+        ? true
+        : await _channel.invokeMethod<bool>('canInstall').catchError((_) => true) ?? true;
     if (!can) {
       if (!context.mounted) return;
       final go = await showDialog<bool>(
@@ -238,7 +248,7 @@ class HamUpdater {
       final dir = Directory('${(await getTemporaryDirectory()).path}/updates');
       if (dir.existsSync()) dir.deleteSync(recursive: true);
       dir.createSync(recursive: true);
-      path = '${dir.path}/HamVPN-${info.build}.apk';
+      path = Platform.isWindows ? '${dir.path}\\HamVPN-Setup-${info.build}.exe' : '${dir.path}/HamVPN-${info.build}.apk';
       await Dio(BaseOptions(connectTimeout: const Duration(seconds: 20))).download(
         info.url,
         path,
@@ -274,15 +284,52 @@ class HamUpdater {
           ],
         ),
       );
-      if (retry == 'retry' && context.mounted) return _downloadAndInstall(context, info);
+      if (retry == 'retry' && context.mounted) return _downloadAndInstall(context, ref, info);
       if (retry == 'site') await _openInBrowser();
       return;
     }
 
+    if (Platform.isWindows) return _installOnWindows(context, ref, path!);
     try {
       await _channel.invokeMethod<void>('install', {'path': path});
     } catch (_) {
       await _openInBrowser();
     }
+  }
+
+  /// Windows: запускаем установщик тихо и закрываем программу. Установщик
+  /// заменяет файлы и сам открывает новую версию. Перед выходом обязательно
+  /// отключаем VPN — иначе в Windows остался бы включённым системный прокси
+  /// на уже закрытую программу и интернет пропал бы до перезапуска.
+  static Future<void> _installOnWindows(BuildContext context, WidgetRef ref, String path) async {
+    try {
+      await Process.start(
+        path,
+        ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS', '/HAMUPDATE'],
+        mode: ProcessStartMode.detached,
+      );
+    } catch (_) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Не удалось запустить установку. Скачайте программу на сайте hamvpn.net/download')),
+        );
+      }
+      await _openInBrowser();
+      return;
+    }
+    if (context.mounted) {
+      // ignore: unawaited_futures
+      showDialog<void>(
+        context: context,
+        barrierDismissible: false,
+        builder: (_) => const AlertDialog(
+          title: Text('Устанавливаем обновление'),
+          content: Text('ХамВПН закроется на несколько секунд и откроется уже новой версией.'),
+        ),
+      );
+    }
+    await Future<void>.delayed(const Duration(seconds: 1));
+    await ref.read(windowNotifierProvider.notifier).exit();
+    exit(0);
   }
 }

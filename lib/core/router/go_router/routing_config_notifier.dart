@@ -76,8 +76,14 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
         // выставляются автоматически при первом входе (см. hamvpn_account.dart).
         // Ссылка с сайта «Открыть в приложении»: hamvpn://login?t=<одноразовый код>.
         // Входим в тот же аккаунт, что на сайте, и показываем главный экран.
-        if (state.uri.scheme == 'hamvpn') {
-          final linkToken = state.uri.queryParameters['t'] ?? '';
+        // На компьютере ссылка приходит не в маршрут, а через AppLinks (newUrlFromAppLink)
+        final desktopHamLink = PlatformUtils.isDesktop && newUrlFromAppLink.startsWith('hamvpn:')
+            ? Uri.tryParse(newUrlFromAppLink)
+            : null;
+        if (desktopHamLink != null) newUrlFromAppLink = '';
+        final hamLink = state.uri.scheme == 'hamvpn' ? state.uri : desktopHamLink;
+        if (hamLink != null) {
+          final linkToken = hamLink.queryParameters['t'] ?? '';
           // redirect может вызваться несколько раз для одной ссылки — код одноразовый
           if (linkToken != _lastHamLinkToken) {
             _lastHamLinkToken = linkToken;

@@ -116,9 +116,10 @@ class HamApi {
 
   Future<Map<String, dynamic>> speed() => _call(() => _dio.get('/speed'));
 
-  /// Есть ли новая версия приложения на сайте (abi: arm64 / arm7 / x86_64 / universal).
-  Future<Map<String, dynamic>> update(String abi, int build) =>
-      _call(() => _dio.get('/update', queryParameters: {'abi': abi, 'build': build, 'platform': 'android'}));
+  /// Есть ли новая версия приложения на сайте
+  /// (abi: arm64 / arm7 / x86_64 / universal для Android, windows для ПК).
+  Future<Map<String, dynamic>> update(String abi, int build, {String platform = 'android'}) =>
+      _call(() => _dio.get('/update', queryParameters: {'abi': abi, 'build': build, 'platform': platform}));
 
   Future<void> logout(String token) async {
     try {

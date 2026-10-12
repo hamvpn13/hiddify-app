@@ -23,7 +23,7 @@ class AboutPage extends HookConsumerWidget {
     final t = ref.watch(translationsProvider).requireValue;
     final appInfo = ref.watch(appInfoProvider).requireValue;
     final conditionalTiles = [
-      if (PlatformUtils.isAndroid)
+      if (PlatformUtils.isAndroid || PlatformUtils.isWindows)
         ListTile(
           title: const Text('Проверить обновления'),
           subtitle: Text('Установлена версия ${appInfo.version}'),
