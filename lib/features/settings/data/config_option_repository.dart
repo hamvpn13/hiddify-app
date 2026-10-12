@@ -40,7 +40,9 @@ abstract class ConfigOptions {
   static final blockAds = PreferencesNotifier.create<bool, bool>("block-ads", false);
   static final logLevel = PreferencesNotifier.create<LogLevel, String>(
     "log-level",
-    LogLevel.warn,
+    // ХамВПН: по умолчанию info, чтобы на странице «Логи» было видно работу VPN
+    // (warn почти всегда пусто). Журнал не покидает устройство.
+    LogLevel.info,
     mapFrom: LogLevel.values.byName,
     mapTo: (value) => value.name,
   );

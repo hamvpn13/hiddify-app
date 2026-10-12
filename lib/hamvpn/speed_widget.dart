@@ -6,8 +6,9 @@ import 'package:hiddify/hamvpn/hamvpn_account.dart';
 import 'package:hiddify/hamvpn/hamvpn_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// Маленькое окошко под кнопкой: скорость интернета без VPN и через выбранную страну.
-/// Цифры — последние замеры бота мониторинга (он меряет из России), приходят с сайта.
+/// Окошко под кнопкой на главном экране (Android и Windows): средняя скорость
+/// интернета без VPN и через выбранную страну. Цифры — среднее по замерам бота
+/// мониторинга за неделю (он меряет из России), приходят с сайта.
 class HamSpeedBox extends HookConsumerWidget {
   const HamSpeedBox({super.key});
 
@@ -58,6 +59,10 @@ class HamSpeedBox extends HookConsumerWidget {
     String mbps(double? v) => v == null ? '—' : '${v >= 10 ? v.toStringAsFixed(0) : v.toStringAsFixed(1)} Мбит/с';
 
     String ago() {
+      final samples = ((d['samples'] as num?) ?? 0).toInt();
+      if (d['average'] == true && samples > 1) {
+        return 'среднее за ${(d['period_days'] as num?)?.toInt() ?? 7} дн · замеров: $samples';
+      }
       final at = DateTime.tryParse((d['measured_at'] as String?) ?? '');
       if (at == null) return '';
       final m = DateTime.now().toUtc().difference(at).inMinutes;
@@ -94,6 +99,8 @@ class HamSpeedBox extends HookConsumerWidget {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            Text('Средняя скорость', style: TextStyle(color: k.textDim, fontSize: 12, fontWeight: FontWeight.w600)),
+            const Gap(6),
             Row(
               children: [
                 cell(Icons.public_rounded, 'без VPN', mbps(direct), k.text),

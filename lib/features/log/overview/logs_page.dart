@@ -140,6 +140,19 @@ class LogsPage extends HookConsumerWidget with PresLogger {
               reverse: true,
               slivers: <Widget>[
                 switch (state.logs) {
+                  // ХамВПН: пустой журнал — объясняем, а не показываем белый экран
+                  AsyncData(value: final logs) when logs.isEmpty => const SliverFillRemaining(
+                    hasScrollBody: false,
+                    child: Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Text(
+                          'Пока записей нет.\nОни появятся, когда VPN подключится и начнёт работать.',
+                          textAlign: TextAlign.center,
+                        ),
+                      ),
+                    ),
+                  ),
                   AsyncData(value: final logs) => SliverList.builder(
                     itemCount: logs.length,
                     itemBuilder: (context, index) {
