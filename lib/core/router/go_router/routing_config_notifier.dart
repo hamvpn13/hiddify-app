@@ -40,6 +40,9 @@ final branchesScope = <String, FocusScopeNode>{
   'about': FocusScopeNode(),
 };
 
+// последняя обработанная ссылка входа с сайта (hamvpn://login?t=…)
+String _lastHamLinkToken = '';
+
 // when the routing config is not yet initialized, this config is used
 final loadingConfig = RoutingConfig(
   routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
@@ -71,6 +74,19 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
         // ХамВПН: без входа в аккаунт — только экран входа/регистрации.
         // Вступительный экран Hiddify не показываем: язык, регион и прочее
         // выставляются автоматически при первом входе (см. hamvpn_account.dart).
+        // Ссылка с сайта «Открыть в приложении»: hamvpn://login?t=<одноразовый код>.
+        // Входим в тот же аккаунт, что на сайте, и показываем главный экран.
+        if (state.uri.scheme == 'hamvpn') {
+          final linkToken = state.uri.queryParameters['t'] ?? '';
+          // redirect может вызваться несколько раз для одной ссылки — код одноразовый
+          if (linkToken != _lastHamLinkToken) {
+            _lastHamLinkToken = linkToken;
+            WidgetsBinding.instance.addPostFrameCallback(
+              (_) => ref.read(hamAccountProvider.notifier).loginWithLink(linkToken),
+            );
+          }
+          return ref.read(HamPrefs.token).isNotEmpty ? '/home' : '/login';
+        }
         final hamLoggedIn = ref.read(HamPrefs.token).isNotEmpty;
         final isHamLogin = state.matchedLocation == '/login';
         if (!hamLoggedIn) return isHamLogin ? null : '/login';

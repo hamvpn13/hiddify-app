@@ -344,7 +344,12 @@ class HamAccountPage extends HookConsumerWidget {
                     subtitle: 'Напишите нам в Telegram-бота',
                   ),
                   sep(),
-                  row(Icons.language_rounded, 'Кабинет на сайте', () => _open(account.link('site'))),
+                  row(
+                    Icons.language_rounded,
+                    'Кабинет на сайте',
+                    () async => _open(await ref.read(hamAccountProvider.notifier).siteLoginUrl()),
+                    subtitle: 'Откроется сразу, без пароля',
+                  ),
                 ],
               ),
             ),

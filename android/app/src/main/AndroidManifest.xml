@@ -89,6 +89,14 @@
                 <data android:host="install-sub" /> -->
             </intent-filter>
 
+            <!-- ХамВПН: «Открыть в приложении» с сайта hamvpn.net (вход без пароля) -->
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="hamvpn" android:host="login" />
+            </intent-filter>
+
             <intent-filter>
                 <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
             </intent-filter>

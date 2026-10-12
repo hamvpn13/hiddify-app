@@ -127,6 +127,41 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
     }
   }
 
+  /// Вход по одноразовой ссылке с сайта (кнопка «Открыть в приложении»).
+  /// Если в приложении уже другой аккаунт — он заменяется тем, что на сайте.
+  Future<String?> loginWithLink(String linkToken) async {
+    if (linkToken.isEmpty) return 'Ссылка для входа устарела. Откройте её на сайте ещё раз.';
+    state = state.copyWith(loading: true, clearError: true);
+    try {
+      final data = await _api.loginByLink(linkToken, _deviceName());
+      final newLogin = (Map<String, dynamic>.from((data['user'] as Map?) ?? const {})['login'] as String?) ?? '';
+      final current = ref.read(HamPrefs.login);
+      if (_token.isNotEmpty && current.isNotEmpty && current != newLogin) {
+        await logout(callServer: false);
+      }
+      await _afterAuth(data);
+      return null;
+    } on HamApiException catch (e) {
+      state = state.copyWith(loading: false, error: e.message);
+      return e.message;
+    }
+  }
+
+  /// Адрес личного кабинета на сайте с автоматическим входом.
+  /// Если сайт не ответил — просто страница сайта (там можно войти вручную).
+  Future<String> siteLoginUrl() async {
+    final fallback = state.link('site').isNotEmpty ? state.link('site') : '$kHamSiteUrl/cabinet';
+    final token = _token;
+    if (token.isEmpty) return fallback;
+    try {
+      final data = await _api.webLoginLink(token);
+      final url = data['url'] as String?;
+      return (url == null || url.isEmpty) ? fallback : url;
+    } on HamApiException {
+      return fallback;
+    }
+  }
+
   /// Обновить баланс и дни (при запуске, возврате в приложение, после оплаты).
   Future<void> refresh() async {
     final token = _token;

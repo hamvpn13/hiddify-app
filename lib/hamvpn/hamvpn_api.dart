@@ -82,6 +82,14 @@ class HamApi {
     ),
   );
 
+  /// Одноразовая ссылка «войти на сайт без пароля» (живёт пару минут).
+  Future<Map<String, dynamic>> webLoginLink(String token) =>
+      _call(() => _dio.post('/web-login-link', options: _auth(token)));
+
+  /// Вход в приложение по одноразовому коду из ссылки hamvpn://login?t=… с сайта.
+  Future<Map<String, dynamic>> loginByLink(String linkToken, String device) =>
+      _call(() => _dio.post('/login-link', data: {'token': linkToken, 'device': device}));
+
   Future<Map<String, dynamic>> me(String token) => _call(() => _dio.get('/me', options: _auth(token)));
 
   Future<Map<String, dynamic>> plans(String token) => _call(() => _dio.get('/plans', options: _auth(token)));

@@ -5,6 +5,8 @@ import 'package:hiddify/core/preferences/general_preferences.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
+import 'package:hiddify/hamvpn/hamvpn_account.dart';
+import 'package:hiddify/hamvpn/hamvpn_api.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:meta/meta.dart';
 import 'package:neat_periodic_task/neat_periodic_task.dart';
@@ -17,7 +19,18 @@ typedef ProfileUpdateStatus = ({String name, bool success});
 @Riverpod(keepAlive: true)
 class ForegroundProfilesUpdateNotifier extends _$ForegroundProfilesUpdateNotifier with AppLogger {
   static const prefKey = "profiles_update_check";
-  static const interval = Duration(minutes: 15);
+  /// Как часто просыпается проверка. Для подписки ХамВПН этого же интервала
+  /// достаточно: список серверов (названия, новые страны) подтягивается сам.
+  static const interval = Duration(minutes: 10);
+
+  /// Интервал обновления подписки ХамВПН — вместо 12 часов из заголовка Marzban.
+  static const hamInterval = Duration(minutes: 10);
+
+  /// Подписка нашего аккаунта (добавлена приложением автоматически).
+  bool _isHamProfile(RemoteProfileEntity profile) {
+    final ours = ref.read(HamPrefs.profileUrl);
+    return (ours.isNotEmpty && profile.url == ours) || profile.url.startsWith(kHamSiteUrl);
+  }
 
   @override
   Stream<ProfileUpdateStatus?> build() {
@@ -85,8 +98,26 @@ class ForegroundProfilesUpdateNotifier extends _$ForegroundProfilesUpdateNotifie
           .first;
 
       await for (final profile in Stream.fromIterable(remoteProfiles)) {
-        final updateInterval = profile.options?.updateInterval;
-        if (force || updateInterval != null && updateInterval <= DateTime.now().difference(profile.lastUpdate)) {
+        final isHam = _isHamProfile(profile);
+        // ХамВПН: обновляем тихо, раз в 10 минут. Подключение при этом не
+        // перезапускается — новый список серверов применится при следующем
+        // подключении, интернет у человека не прерывается.
+        final updateInterval = isHam ? hamInterval : profile.options?.updateInterval;
+        // небольшой запас, чтобы не пропускать цикл из-за пары секунд разницы
+        final due =
+            updateInterval != null &&
+            updateInterval - const Duration(seconds: 30) <= DateTime.now().difference(profile.lastUpdate);
+        if (isHam && (force || due)) {
+          await ref
+              .read(profileRepositoryProvider)
+              .requireValue
+              .upsertRemote(profile.url)
+              .mapLeft((l) => loggy.debug("hamvpn: silent update failed [${profile.id}]", l))
+              .map((_) => loggy.debug("hamvpn: subscription refreshed [${profile.id}]"))
+              .run();
+          continue;
+        }
+        if (force || due) {
           final t = ref.read(translationsProvider).requireValue;
           await ref
               .read(profileRepositoryProvider)
