@@ -193,17 +193,21 @@ class HamLoginPage extends HookConsumerWidget {
                   const Gap(16),
                   Divider(color: k.border),
                   const Gap(8),
+                  Text(
+                    isRegister.value
+                        ? 'Регистрируясь, вы принимаете условия документов:'
+                        : 'Пользуясь сервисом, вы принимаете условия документов:',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: k.textDim, fontSize: 12),
+                  ),
                   Wrap(
                     alignment: WrapAlignment.center,
                     children: [
-                      TextButton(
-                        onPressed: () => HamInfoPage.open(context, HamInfo.terms),
-                        child: Text('Условия использования', style: TextStyle(color: k.textDim, fontSize: 13)),
-                      ),
-                      TextButton(
-                        onPressed: () => HamInfoPage.open(context, HamInfo.privacy),
-                        child: Text('Конфиденциальность', style: TextStyle(color: k.textDim, fontSize: 13)),
-                      ),
+                      for (final doc in HamInfo.values)
+                        TextButton(
+                          onPressed: () => HamInfoPage.open(context, doc),
+                          child: Text(doc.shortTitle, style: TextStyle(color: k.textDim, fontSize: 13)),
+                        ),
                     ],
                   ),
                 ],

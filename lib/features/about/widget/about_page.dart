@@ -104,14 +104,20 @@ class AboutPage extends HookConsumerWidget {
                   onTap: () async => UriUtils.tryLaunch(Uri.parse(kHamTelegramChannelUrl)),
                 ),
               ListTile(
+                leading: const Icon(Icons.description_rounded),
+                title: Text(HamInfo.offer.shortTitle),
+                trailing: const Icon(Icons.chevron_right_rounded),
+                onTap: () => HamInfoPage.open(context, HamInfo.offer),
+              ),
+              ListTile(
                 leading: const Icon(Icons.gavel_rounded),
-                title: const Text('Условия использования'),
+                title: Text(HamInfo.terms.shortTitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => HamInfoPage.open(context, HamInfo.terms),
               ),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_rounded),
-                title: const Text('Политика конфиденциальности'),
+                title: Text(HamInfo.privacy.shortTitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
                 onTap: () => HamInfoPage.open(context, HamInfo.privacy),
               ),
