@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'package:flutter/foundation.dart';
 
 import 'package:hiddify/core/analytics/analytics_controller.dart';
 import 'package:hiddify/core/localization/locale_preferences.dart';
@@ -97,8 +98,21 @@ class GorecAccountNotifier extends Notifier<GorecAccountState> {
     final token = data['token'] as String? ?? '';
     state = GorecAccountState(me: data);
     await ref.read(GorecPrefs.login.notifier).update(state.login);
-    await _applyFirstLaunchDefaults();
-    await syncProfile();
+    // Сервер вход уже подтвердил — любая ошибка дальше (настройки, добавление
+    // подписки) не должна оставлять человека на экране входа без ответа.
+    try {
+      await _applyFirstLaunchDefaults();
+    } catch (e) {
+      debugPrint('gorec: first-launch defaults failed: $e');
+    }
+    String? syncError;
+    try {
+      await syncProfile();
+    } catch (e) {
+      debugPrint('gorec: syncProfile failed: $e');
+      syncError = 'Вход выполнен, но подписку не удалось добавить автоматически ($e). Она добавится при следующем запуске.';
+    }
+    if (syncError != null) state = state.copyWith(error: syncError);
     // Токен сохраняем последним: на него завязан переход на главный экран
     await ref.read(GorecPrefs.token.notifier).update(token);
   }
@@ -113,6 +127,12 @@ class GorecAccountNotifier extends Notifier<GorecAccountState> {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
     }
+    catch (e) {
+      debugPrint('gorec: auth failed: $e');
+      final msg = 'Не удалось войти: $e';
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
+    }
   }
 
   Future<String?> register(String login, String password, {String? ref}) async {
@@ -124,6 +144,12 @@ class GorecAccountNotifier extends Notifier<GorecAccountState> {
     } on GorecApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
+    }
+    catch (e) {
+      debugPrint('gorec: auth failed: $e');
+      final msg = 'Не удалось войти: $e';
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
     }
   }
 
@@ -144,6 +170,12 @@ class GorecAccountNotifier extends Notifier<GorecAccountState> {
     } on GorecApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
+    }
+    catch (e) {
+      debugPrint('gorec: auth failed: $e');
+      final msg = 'Не удалось войти: $e';
+      state = state.copyWith(loading: false, error: msg);
+      return msg;
     }
   }
 
@@ -173,7 +205,11 @@ class GorecAccountNotifier extends Notifier<GorecAccountState> {
       if (state.login.isNotEmpty && state.login != ref.read(GorecPrefs.login)) {
         await ref.read(GorecPrefs.login.notifier).update(state.login);
       }
-      await syncProfile();
+      try {
+        await syncProfile();
+      } catch (e) {
+        debugPrint('gorec: syncProfile failed: $e');
+      }
     } on GorecApiException catch (e) {
       if (e.isUnauthorized) {
         await logout(callServer: false);
