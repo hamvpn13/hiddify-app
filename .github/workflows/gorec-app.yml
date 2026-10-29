@@ -1,0 +1,277 @@
+name: Gorec Android + Windows
+
+# Сборка Горец сразу для Android (APK) и Windows (установщик).
+# Запуск вручную: Actions -> Gorec Android + Windows -> Run workflow.
+# С галочкой publish обе версии выкладываются вместе (релиз app-latest, общий номер
+# сборки) — сайт забирает их, и обновление приходит и на телефоны, и на компьютеры.
+on:
+  workflow_dispatch:
+    inputs:
+      publish:
+        description: "Выложить для скачивания на сайт (релиз app-latest)"
+        type: boolean
+        default: false
+      version:
+        description: "Номер версии для людей (например 1.0.3). Пусто — 1.0.<номер запуска>"
+        type: string
+        default: ""
+      notes:
+        description: "Что нового (покажется в окне «Доступно обновление»)"
+        type: string
+        default: ""
+      force:
+        description: "Обязательное обновление (старые версии не смогут отказаться)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+jobs:
+  apk:
+    runs-on: ubuntu-latest
+    env:
+      IS_GITHUB_ACTIONS: 1
+      # prod = стабильная версия ядра из dependencies.properties (draft не совпадает с кодом)
+      CHANNEL: prod
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Free disk space
+        run: |
+          sudo rm -rf /usr/share/dotnet /opt/ghc /opt/hostedtoolcache/CodeQL
+          df -h
+
+      - uses: actions/setup-java@v5
+        with:
+          distribution: zulu
+          java-version: 17
+
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: Accept Android licenses
+        run: yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+
+      - name: Prepare (deps, codegen, core libs)
+        run: make android-apk-prepare
+
+      # Постоянный ключ подписи: без него новые версии не встанут поверх старых
+      - name: Signing key
+        env:
+          KEYSTORE_B64: ${{ secrets.ANDROID_KEYSTORE_B64 }}
+          KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+        run: |
+          if [ -z "$KEYSTORE_B64" ] || [ -z "$KEYSTORE_PASSWORD" ]; then
+            echo "::warning::Нет секретов ANDROID_KEYSTORE_B64 / ANDROID_KEYSTORE_PASSWORD — APK подписан временным ключом"
+            if [ "${{ inputs.publish }}" = "true" ]; then echo "::error::Публиковать без постоянного ключа нельзя"; exit 1; fi
+            exit 0
+          fi
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/gorec-release.jks"
+          PW="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
+          {
+            echo "storeFile=$RUNNER_TEMP/gorec-release.jks"
+            echo "storePassword=$PW"
+            echo "keyPassword=$PW"
+            echo "keyAlias=gorec"
+          } > android/key.properties
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # номер сборки всегда растёт: 40200 + номер запуска (старая 4.1.1 = 40101)
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          echo "Версия $NAME, сборка $BUILD"
+
+      - name: Build APK
+        run: flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64 --build-name "$APP_VERSION" --build-number "$BUILD"
+
+      - name: Collect APKs
+        run: |
+          mkdir -p out
+          D=build/app/outputs/flutter-apk
+          ls -la $D
+          cp $D/app-arm64-v8a-release.apk   out/Gorec-arm64.apk
+          cp $D/app-armeabi-v7a-release.apk out/Gorec-arm7.apk
+          cp $D/app-x86_64-release.apk      out/Gorec-x86_64.apk
+          cp $D/app-release.apk             out/Gorec-universal.apk
+          ls -la out
+
+      # Каждый вариант — отдельным файлом для скачивания
+      - name: Upload arm64 (для большинства телефонов)
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-arm64
+          path: out/Gorec-arm64.apk
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload arm7 (старые телефоны)
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-arm7
+          path: out/Gorec-arm7.apk
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload universal (подходит всем, но большой)
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-universal
+          path: out/Gorec-universal.apk
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload x86_64 (эмуляторы, Android-ТВ на x86)
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-x86_64
+          path: out/Gorec-x86_64.apk
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload all APKs for publishing
+        uses: actions/upload-artifact@v6
+        with:
+          name: android-out
+          path: out/*.apk
+          compression-level: 0
+          retention-days: 3
+
+  windows:
+    runs-on: windows-latest
+    env:
+      IS_GITHUB_ACTIONS: 1
+      CHANNEL: prod
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: subosito/flutter-action@v2.21.0
+        with:
+          flutter-version: '3.38.5'
+          channel: stable
+          cache: true
+
+      - name: Prepare (deps, codegen, core libs)
+        run: make windows-prepare
+
+      - name: Version
+        env:
+          VERSION: ${{ inputs.version }}
+        run: |
+          # тот же номер, что у Android в этом запуске — одно обновление для всех
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          echo "Версия $NAME, сборка $BUILD"
+
+      - name: Build Windows
+        run: flutter build windows --release --target lib/main.dart --build-name "$APP_VERSION" --build-number "$BUILD"
+
+      - name: Add Visual C++ runtime
+        shell: pwsh
+        run: |
+          # без них программа не запустится на компьютере, где нет Visual C++ Redistributable
+          $rel = "build\windows\x64\runner\Release"
+          foreach ($f in "msvcp140.dll","vcruntime140.dll","vcruntime140_1.dll") {
+            Copy-Item "$env:WINDIR\System32\$f" $rel -Force
+          }
+          Get-ChildItem $rel
+
+      - name: Installer
+        shell: pwsh
+        run: |
+          if (-not (Get-Command iscc -ErrorAction SilentlyContinue)) {
+            choco install innosetup -y --no-progress | Out-Null
+            $env:Path += ";${env:ProgramFiles(x86)}\Inno Setup 6"
+          }
+          $src = (Resolve-Path "build\windows\x64\runner\Release").Path
+          $out = Join-Path $PWD "out"
+          New-Item -ItemType Directory -Force $out | Out-Null
+          iscc "/DAppVersion=$env:APP_VERSION" "/DAppBuild=$env:BUILD" "/DSourceDir=$src" "/O$out" windows\packaging\gorec\Gorec.iss
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Compress-Archive -Path "$src\*" -DestinationPath out\Gorec-Windows-Portable.zip
+          Get-ChildItem out
+
+      - name: Upload installer
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-Windows-Setup
+          path: out/Gorec-Windows-Setup.exe
+          compression-level: 0
+          retention-days: 14
+
+      - name: Upload portable
+        uses: actions/upload-artifact@v6
+        with:
+          name: Gorec-Windows-Portable
+          path: out/Gorec-Windows-Portable.zip
+          compression-level: 0
+          retention-days: 14
+
+  # Публикация: обе версии вместе в релиз app-latest, сайт забирает их скриптом update_app.py
+  publish:
+    if: ${{ inputs.publish }}
+    needs: [apk, windows]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v7
+        with:
+          name: android-out
+          path: out
+      - uses: actions/download-artifact@v7
+        with:
+          name: Gorec-Windows-Setup
+          path: out
+
+      - name: version.json
+        env:
+          VERSION: ${{ inputs.version }}
+          NOTES: ${{ inputs.notes }}
+          FORCE: ${{ inputs.force }}
+        run: |
+          BUILD=$((40200 + ${{ github.run_number }}))
+          NAME="${VERSION:-1.0.${{ github.run_number }}}"
+          echo "BUILD=$BUILD" >> "$GITHUB_ENV"
+          echo "APP_VERSION=$NAME" >> "$GITHUB_ENV"
+          export BUILD APP_VERSION="$NAME"
+          ls -la out
+          python3 - <<'PY'
+          import hashlib, json, os
+          files = {}
+          for key, name in (("arm64", "Gorec-arm64.apk"), ("arm7", "Gorec-arm7.apk"),
+                            ("x86_64", "Gorec-x86_64.apk"), ("universal", "Gorec-universal.apk"),
+                            ("windows", "Gorec-Windows-Setup.exe")):
+              data = open(f"out/{name}", "rb").read()
+              files[key] = {"file": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
+          info = {
+              "version": os.environ["APP_VERSION"],
+              "build": int(os.environ["BUILD"]),
+              "notes": os.environ.get("NOTES", "").strip(),
+              "force": os.environ.get("FORCE") == "true",
+              "commit": os.environ["GITHUB_SHA"][:7],
+              "files": files,
+          }
+          json.dump(info, open("out/version.json", "w"), ensure_ascii=False, indent=1)
+          print(json.dumps(info, ensure_ascii=False, indent=1))
+          PY
+
+      - name: Publish release app-latest
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          gh release delete app-latest --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
+          gh release create app-latest out/*.apk out/*.exe out/version.json -R "$GITHUB_REPOSITORY" \
+            --target "$GITHUB_SHA" --title "Горец $APP_VERSION" \
+            --notes "Сборка $BUILD (Android + Windows) для сайта gorec.vip/download" --prerelease
