@@ -1,6 +1,6 @@
-; Установщик ХамВПН для Windows (Inno Setup 6).
-; Собирается в CI (.github/workflows/hamvpn-android.yml, задача windows):
-;   iscc /DAppVersion=1.0.15 /DAppBuild=40215 /DSourceDir=<папка Release> HamVPN.iss
+; Установщик Горец для Windows (Inno Setup 6).
+; Собирается в CI (.github/workflows/gorec-android.yml, задача windows):
+;   iscc /DAppVersion=1.0.15 /DAppBuild=40215 /DSourceDir=<папка Release> Gorec.iss
 ;
 ; Ставится в профиль пользователя (без прав администратора и без окна UAC),
 ; поэтому обновление из самой программы проходит тихо: программа запускает
@@ -19,25 +19,25 @@
 
 [Setup]
 AppId={{AB0D1DEC-E0CD-486C-B918-679194EBE019}
-AppName=ХамВПН
+AppName=Горец
 AppVersion={#AppVersion}
-AppVerName=ХамВПН {#AppVersion}
-AppPublisher=ХамВПН
+AppVerName=Горец {#AppVersion}
+AppPublisher=Горец
 AppPublisherURL=https://gorec.vip
 AppSupportURL=https://t.me/hamvpn13_bot
 AppUpdatesURL=https://gorec.vip/download
 VersionInfoVersion={#AppVersion}.0
-VersionInfoProductName=ХамВПН
-DefaultDirName={localappdata}\Programs\HamVPN
-DefaultGroupName=ХамВПН
+VersionInfoProductName=Горец
+DefaultDirName={localappdata}\Programs\Gorec
+DefaultGroupName=Горец
 DisableProgramGroupPage=yes
 DisableDirPage=yes
 DisableReadyPage=yes
 PrivilegesRequired=lowest
-OutputBaseFilename=HamVPN-Windows-Setup
+OutputBaseFilename=Gorec-Windows-Setup
 SetupIconFile=..\..\runner\resources\app_icon.ico
-UninstallDisplayIcon={app}\HamVPN.exe
-UninstallDisplayName=ХамВПН
+UninstallDisplayIcon={app}\Gorec.exe
+UninstallDisplayName=Горец
 Compression=lzma2/max
 SolidCompression=yes
 WizardStyle=modern
@@ -56,20 +56,20 @@ Name: "desktopicon"; Description: "Значок на рабочем столе";
 Source: "{#SourceDir}\*"; DestDir: "{app}"; Flags: ignoreversion recursesubdirs createallsubdirs
 
 [Icons]
-Name: "{group}\ХамВПН"; Filename: "{app}\HamVPN.exe"
-Name: "{group}\Удалить ХамВПН"; Filename: "{uninstallexe}"
-Name: "{autodesktop}\ХамВПН"; Filename: "{app}\HamVPN.exe"; Tasks: desktopicon
+Name: "{group}\Горец"; Filename: "{app}\Gorec.exe"
+Name: "{group}\Удалить Горец"; Filename: "{uninstallexe}"
+Name: "{autodesktop}\Горец"; Filename: "{app}\Gorec.exe"; Tasks: desktopicon
 
 [Registry]
-; Ссылки hamvpn://login?t=… с сайта («Открыть в приложении») открывают программу
-Root: HKCU; Subkey: "Software\Classes\hamvpn"; ValueType: string; ValueName: ""; ValueData: "URL:HamVPN"; Flags: uninsdeletekey
-Root: HKCU; Subkey: "Software\Classes\hamvpn"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
-Root: HKCU; Subkey: "Software\Classes\hamvpn\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\HamVPN.exe,0"
-Root: HKCU; Subkey: "Software\Classes\hamvpn\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\HamVPN.exe"" ""%1"""
+; Ссылки gorec://login?t=… с сайта («Открыть в приложении») открывают программу
+Root: HKCU; Subkey: "Software\Classes\gorec"; ValueType: string; ValueName: ""; ValueData: "URL:Gorec"; Flags: uninsdeletekey
+Root: HKCU; Subkey: "Software\Classes\gorec"; ValueType: string; ValueName: "URL Protocol"; ValueData: ""
+Root: HKCU; Subkey: "Software\Classes\gorec\DefaultIcon"; ValueType: string; ValueName: ""; ValueData: "{app}\Gorec.exe,0"
+Root: HKCU; Subkey: "Software\Classes\gorec\shell\open\command"; ValueType: string; ValueName: ""; ValueData: """{app}\Gorec.exe"" ""%1"""
 
 [Run]
 ; И после обычной установки, и после тихого обновления — сразу открыть программу
-Filename: "{app}\HamVPN.exe"; Description: "Запустить ХамВПН"; Flags: nowait postinstall
+Filename: "{app}\Gorec.exe"; Description: "Запустить Горец"; Flags: nowait postinstall
 
 [Code]
 // На случай, если программа ещё не успела закрыться — закрываем её сами
@@ -77,6 +77,6 @@ function InitializeSetup(): Boolean;
 var
   Code: Integer;
 begin
-  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM HamVPN.exe /IM HiddifyCli.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
+  Exec(ExpandConstant('{sys}\taskkill.exe'), '/F /IM Gorec.exe /IM HiddifyCli.exe', '', SW_HIDE, ewWaitUntilTerminated, Code);
   Result := True;
 end;

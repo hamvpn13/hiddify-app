@@ -7,8 +7,8 @@ import 'package:gap/gap.dart';
 import 'package:hiddify/core/preferences/preferences_provider.dart';
 import 'package:hiddify/features/connection/notifier/connection_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_notifier.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
 /// Замер «без VPN» на самом устройстве: качаем тестовый файл с российского
@@ -66,8 +66,8 @@ Future<double?> _measureLocalMbps() async {
 /// Окошко под кнопкой на главном экране (Android и Windows):
 /// «без VPN» — замер на этом устройстве (когда VPN выключен);
 /// «с VPN» — средняя скорость выбранной страны по замерам бота мониторинга за неделю (с сайта).
-class HamSpeedBox extends HookConsumerWidget {
-  const HamSpeedBox({super.key});
+class GorecSpeedBox extends HookConsumerWidget {
+  const GorecSpeedBox({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -81,7 +81,7 @@ class HamSpeedBox extends HookConsumerWidget {
 
     Future<void> load() async {
       try {
-        data.value = await ref.read(hamApiProvider).speed();
+        data.value = await ref.read(gorecApiProvider).speed();
       } catch (_) {}
     }
 
@@ -127,7 +127,7 @@ class HamSpeedBox extends HookConsumerWidget {
     final d = data.value ?? const <String, dynamic>{};
     final serverOk = d['available'] == true;
 
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     final countries = serverOk
         ? ((d['countries'] as List?) ?? const []).map((e) => Map<String, dynamic>.from(e as Map)).toList()
         : <Map<String, dynamic>>[];
@@ -231,7 +231,7 @@ class HamSpeedBox extends HookConsumerWidget {
       child: Container(
         width: 300,
         padding: const EdgeInsets.fromLTRB(12, 10, 12, 8),
-        decoration: BoxDecoration(color: k.bgElev, borderRadius: BorderRadius.circular(HamTokens.radiusSm)),
+        decoration: BoxDecoration(color: k.bgElev, borderRadius: BorderRadius.circular(GorecTokens.radiusSm)),
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [

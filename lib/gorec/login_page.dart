@@ -1,21 +1,21 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
-import 'package:hiddify/hamvpn/info_pages.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
+import 'package:hiddify/gorec/info_pages.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Первый экран: вход или регистрация (тот же логин и пароль, что на сайте и в боте).
 /// Оформлен как страницы /login и /register на сайте.
-class HamLoginPage extends HookConsumerWidget {
-  const HamLoginPage({super.key});
+class GorecLoginPage extends HookConsumerWidget {
+  const GorecLoginPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     final isRegister = useState(false);
     final login = useTextEditingController();
     final password = useTextEditingController();
@@ -24,7 +24,7 @@ class HamLoginPage extends HookConsumerWidget {
     final showRef = useState(false);
     final hidePassword = useState(true);
     final error = useState<String?>(null);
-    final busy = ref.watch(hamAccountProvider).loading;
+    final busy = ref.watch(gorecAccountProvider).loading;
 
     Future<void> submit() async {
       FocusScope.of(context).unfocus();
@@ -35,7 +35,7 @@ class HamLoginPage extends HookConsumerWidget {
         error.value = 'Введите логин и пароль.';
         return;
       }
-      final notifier = ref.read(hamAccountProvider.notifier);
+      final notifier = ref.read(gorecAccountProvider.notifier);
       if (isRegister.value) {
         if (p != password2.text) {
           error.value = 'Пароли не совпадают.';
@@ -67,10 +67,10 @@ class HamLoginPage extends HookConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
-                  Center(child: Image.asset('assets/images/hamvpn_logo.png', width: 88, height: 88)),
+                  Center(child: Image.asset('assets/images/gorec_logo.png', width: 88, height: 88)),
                   const Gap(16),
                   Text(
-                    isRegister.value ? 'Регистрация' : 'Вход в Хам VPN',
+                    isRegister.value ? 'Регистрация' : 'Вход в Горец',
                     textAlign: TextAlign.center,
                     style: Theme.of(context).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.w600),
                   ),
@@ -80,7 +80,7 @@ class HamLoginPage extends HookConsumerWidget {
                     padding: const EdgeInsets.all(14),
                     decoration: BoxDecoration(
                       color: Theme.of(context).colorScheme.secondaryContainer,
-                      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+                      borderRadius: BorderRadius.circular(GorecTokens.radiusSm),
                     ),
                     child: Row(
                       crossAxisAlignment: CrossAxisAlignment.start,
@@ -103,10 +103,10 @@ class HamLoginPage extends HookConsumerWidget {
                   ),
                   const Gap(16),
                   if (error.value != null) ...[
-                    HamFlash(text: error.value!, color: k.red, soft: k.redSoft),
+                    GorecFlash(text: error.value!, color: k.red, soft: k.redSoft),
                     const Gap(12),
                   ],
-                  HamCard(
+                  GorecCard(
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
                       children: [
@@ -203,9 +203,9 @@ class HamLoginPage extends HookConsumerWidget {
                   Wrap(
                     alignment: WrapAlignment.center,
                     children: [
-                      for (final doc in HamInfo.values)
+                      for (final doc in GorecInfo.values)
                         TextButton(
-                          onPressed: () => HamInfoPage.open(context, doc),
+                          onPressed: () => GorecInfoPage.open(context, doc),
                           child: Text(doc.shortTitle, style: TextStyle(color: k.textDim, fontSize: 13)),
                         ),
                     ],

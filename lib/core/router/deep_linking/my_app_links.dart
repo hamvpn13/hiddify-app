@@ -12,8 +12,8 @@ Stream<String> myAppLinks(Ref ref) async* {
     for (final protocol in LinkParser.protocols) {
       registerProtocolHandler(protocol);
     }
-    // ХамВПН: кнопка «Открыть в приложении» на сайте (hamvpn://login?t=…)
-    registerProtocolHandler('hamvpn');
+    // Горец: кнопка «Открыть в приложении» на сайте (gorec://login?t=…)
+    registerProtocolHandler('gorec');
   }
   yield* AppLinks().uriLinkStream.map((event) => event.toString());
 }

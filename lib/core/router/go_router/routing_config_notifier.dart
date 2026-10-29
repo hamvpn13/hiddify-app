@@ -22,9 +22,9 @@ import 'package:hiddify/features/settings/overview/sections/route_options_page.d
 import 'package:hiddify/features/settings/overview/sections/tls_tricks_page.dart';
 import 'package:hiddify/features/settings/overview/sections/warp_options_page.dart';
 import 'package:hiddify/features/settings/overview/settings_page.dart';
-import 'package:hiddify/hamvpn/account_widgets.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/login_page.dart';
+import 'package:hiddify/gorec/account_widgets.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/login_page.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:riverpod_annotation/riverpod_annotation.dart';
 
@@ -40,7 +40,7 @@ final branchesScope = <String, FocusScopeNode>{
   'about': FocusScopeNode(),
 };
 
-// последняя обработанная ссылка входа с сайта (hamvpn://login?t=…)
+// последняя обработанная ссылка входа с сайта (gorec://login?t=…)
 String _lastHamLinkToken = '';
 
 // when the routing config is not yet initialized, this config is used
@@ -48,7 +48,7 @@ final loadingConfig = RoutingConfig(
   routes: <RouteBase>[GoRoute(path: '/home', builder: (context, state) => const Material())],
 );
 
-// ХамВПН: в нижнем меню «Главная» и «Аккаунт»; настройки открываются значком на главном экране.
+// Горец: в нижнем меню «Главная» и «Аккаунт»; настройки открываются значком на главном экране.
 String getNameOfBranch(bool isMobileBreakpoint, bool showProfilesAction, int index) => isMobileBreakpoint
     ? ['home', 'account', 'settings'][index]
     : ['home', if (showProfilesAction) 'profiles', 'account', 'settings', 'logs', 'about'][index];
@@ -71,33 +71,33 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
     if (isMobileBreakpoint == null) return loadingConfig;
     return RoutingConfig(
       redirect: (context, state) {
-        // ХамВПН: без входа в аккаунт — только экран входа/регистрации.
+        // Горец: без входа в аккаунт — только экран входа/регистрации.
         // Вступительный экран Hiddify не показываем: язык, регион и прочее
-        // выставляются автоматически при первом входе (см. hamvpn_account.dart).
-        // Ссылка с сайта «Открыть в приложении»: hamvpn://login?t=<одноразовый код>.
+        // выставляются автоматически при первом входе (см. gorec_account.dart).
+        // Ссылка с сайта «Открыть в приложении»: gorec://login?t=<одноразовый код>.
         // Входим в тот же аккаунт, что на сайте, и показываем главный экран.
         // На компьютере ссылка приходит не в маршрут, а через AppLinks (newUrlFromAppLink)
-        final desktopHamLink = PlatformUtils.isDesktop && newUrlFromAppLink.startsWith('hamvpn:')
+        final desktopHamLink = PlatformUtils.isDesktop && newUrlFromAppLink.startsWith('gorec:')
             ? Uri.tryParse(newUrlFromAppLink)
             : null;
         if (desktopHamLink != null) newUrlFromAppLink = '';
-        final hamLink = state.uri.scheme == 'hamvpn' ? state.uri : desktopHamLink;
-        if (hamLink != null) {
-          final linkToken = hamLink.queryParameters['t'] ?? '';
+        final gorecLink = state.uri.scheme == 'gorec' ? state.uri : desktopHamLink;
+        if (gorecLink != null) {
+          final linkToken = gorecLink.queryParameters['t'] ?? '';
           // redirect может вызваться несколько раз для одной ссылки — код одноразовый
           if (linkToken != _lastHamLinkToken) {
             _lastHamLinkToken = linkToken;
             WidgetsBinding.instance.addPostFrameCallback(
-              (_) => ref.read(hamAccountProvider.notifier).loginWithLink(linkToken),
+              (_) => ref.read(gorecAccountProvider.notifier).loginWithLink(linkToken),
             );
           }
-          return ref.read(HamPrefs.token).isNotEmpty ? '/home' : '/login';
+          return ref.read(GorecPrefs.token).isNotEmpty ? '/home' : '/login';
         }
-        final hamLoggedIn = ref.read(HamPrefs.token).isNotEmpty;
+        final gorecLoggedIn = ref.read(GorecPrefs.token).isNotEmpty;
         final isHamLogin = state.matchedLocation == '/login';
-        if (!hamLoggedIn) return isHamLogin ? null : '/login';
+        if (!gorecLoggedIn) return isHamLogin ? null : '/login';
         if (isHamLogin) return '/home';
-        final introCompleted = ref.read(Preferences.introCompleted) || hamLoggedIn;
+        final introCompleted = ref.read(Preferences.introCompleted) || gorecLoggedIn;
         final isIntro = state.matchedLocation == '/intro';
         // fix path-parameters for deep link
         String? url;
@@ -187,7 +187,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
                 GoRoute(
                   name: 'account',
                   path: '/account',
-                  builder: (_, _) => FocusScope(node: branchesScope['account'], child: const HamAccountPage()),
+                  builder: (_, _) => FocusScope(node: branchesScope['account'], child: const GorecAccountPage()),
                 ),
               ],
             ),
@@ -290,7 +290,7 @@ class RoutingConfigNotifier extends _$RoutingConfigNotifier {
           ],
         ),
         GoRoute(name: 'intro', path: '/intro', builder: (_, _) => const IntroPage()),
-        GoRoute(name: 'login', path: '/login', builder: (_, _) => const HamLoginPage()),
+        GoRoute(name: 'login', path: '/login', builder: (_, _) => const GorecLoginPage()),
       ],
     );
   }

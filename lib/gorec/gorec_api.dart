@@ -1,16 +1,16 @@
 import 'package:dio/dio.dart';
 
-/// Адрес сайта ХамВПН. Приложение — ещё одно окно к тому же аккаунту,
+/// Адрес сайта Горец. Приложение — ещё одно окно к тому же аккаунту,
 /// что сайт и бот: тот же логин, баланс, конфигурации и оплата.
 const String kHamSiteUrl = 'https://gorec.vip';
 const String kHamApiBase = '$kHamSiteUrl/api/app/v1';
 
-/// Telegram-канал ХамВПН (пусто — пункт в «О программе» не показывается).
+/// Telegram-канал Горец (пусто — пункт в «О программе» не показывается).
 const String kHamTelegramChannelUrl = 'https://t.me/hamvpn13_bot';
 
 /// Ошибка API с текстом, который можно сразу показать человеку.
-class HamApiException implements Exception {
-  HamApiException(this.message, {this.code = 'error', this.status});
+class GorecApiException implements Exception {
+  GorecApiException(this.message, {this.code = 'error', this.status});
 
   final String message;
   final String code;
@@ -23,8 +23,8 @@ class HamApiException implements Exception {
 }
 
 /// Тонкий клиент к /api/app/v1 на сайте (см. app/routes/app_api.py на сервере).
-class HamApi {
-  HamApi()
+class GorecApi {
+  GorecApi()
     : _dio = Dio(
         BaseOptions(
           baseUrl: kHamApiBase,
@@ -50,20 +50,20 @@ class HamApi {
           e.type == DioExceptionType.connectionTimeout ||
           e.type == DioExceptionType.receiveTimeout ||
           e.type == DioExceptionType.sendTimeout;
-      throw HamApiException(
+      throw GorecApiException(
         timeout
             ? 'Сервер долго не отвечает. Проверьте интернет и попробуйте ещё раз.'
-            : 'Нет связи с сервером ХамВПН. Проверьте интернет и попробуйте ещё раз.',
+            : 'Нет связи с сервером Горец. Проверьте интернет и попробуйте ещё раз.',
         code: 'network',
       );
     }
     final data = response.data;
     if (data is! Map) {
-      throw HamApiException('Сервер вернул неожиданный ответ. Попробуйте позже.', status: response.statusCode);
+      throw GorecApiException('Сервер вернул неожиданный ответ. Попробуйте позже.', status: response.statusCode);
     }
     final map = Map<String, dynamic>.from(data);
     if (map['ok'] != true) {
-      throw HamApiException(
+      throw GorecApiException(
         (map['error'] as String?) ?? 'Что-то пошло не так. Попробуйте ещё раз.',
         code: (map['code'] as String?) ?? 'error',
         status: response.statusCode,
@@ -86,7 +86,7 @@ class HamApi {
   Future<Map<String, dynamic>> webLoginLink(String token) =>
       _call(() => _dio.post('/web-login-link', options: _auth(token)));
 
-  /// Вход в приложение по одноразовому коду из ссылки hamvpn://login?t=… с сайта.
+  /// Вход в приложение по одноразовому коду из ссылки gorec://login?t=… с сайта.
   Future<Map<String, dynamic>> loginByLink(String linkToken, String device) =>
       _call(() => _dio.post('/login-link', data: {'token': linkToken, 'device': device}));
 

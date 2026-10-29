@@ -1,4 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- ХамВПН: баннер для Android TV (картинка 320×180) -->
+<!-- Горец: баннер для Android TV (картинка 320×180) -->
 <bitmap xmlns:android="http://schemas.android.com/apk/res/android"
-    android:src="@drawable/hamvpn_banner" />
+    android:src="@drawable/gorec_banner" />

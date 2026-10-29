@@ -1,4 +1,4 @@
-import 'package:hiddify/hamvpn/proxy_names.dart';
+import 'package:hiddify/gorec/proxy_names.dart';
 import 'package:flutter/material.dart';
 import 'package:go_router/go_router.dart';
 import 'package:hiddify/core/localization/translations.dart';
@@ -80,7 +80,7 @@ class ActiveProxyFooter extends ConsumerWidget with InfraLogger {
                     label: t.pages.proxies.activeProxy,
                     child: Text(
                       // getRealOutboundTag(activeProxy),
-                      hamProxyName(activeProxy.tagDisplay, type: activeProxy.type),
+                      gorecProxyName(activeProxy.tagDisplay, type: activeProxy.type),
                       style: theme.textTheme.bodyLarge?.copyWith(fontWeight: FontWeight.bold),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
@@ -95,7 +95,7 @@ class ActiveProxyFooter extends ConsumerWidget with InfraLogger {
                         UnknownIPText(text: t.pages.proxies.unknownIp, onTap: handleUrlTest),
                       const Spacer(),
                       Text(
-                        hamProxySubtitle(
+                        gorecProxySubtitle(
                           type: activeProxy.type,
                           isGroup: activeProxy.isGroup,
                           selected: activeProxy.groupSelectedTagDisplay,
@@ -121,9 +121,9 @@ class ActiveProxyFooter extends ConsumerWidget with InfraLogger {
 }
 
 String getRealOutboundTag(OutboundInfo group) {
-  var tag = hamProxyName(group.tagDisplay, type: group.type);
+  var tag = gorecProxyName(group.tagDisplay, type: group.type);
   if (group.groupSelectedTagDisplay != "" && group.groupSelectedTagDisplay != group.tagDisplay) {
-    tag = "$tag → ${hamProxyName(group.groupSelectedTagDisplay)}";
+    tag = "$tag → ${gorecProxyName(group.groupSelectedTagDisplay)}";
   }
   return tag;
 }

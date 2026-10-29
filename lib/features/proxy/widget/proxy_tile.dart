@@ -2,7 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/features/proxy/active/ip_widget.dart';
 import 'package:hiddify/gen/fonts.gen.dart';
-import 'package:hiddify/hamvpn/proxy_names.dart';
+import 'package:hiddify/gorec/proxy_names.dart';
 import 'package:hiddify/hiddifycore/generated/v2/hcore/hcore.pb.dart';
 import 'package:hiddify/utils/custom_loggers.dart';
 import 'package:hiddify/utils/platform_utils.dart';
@@ -22,7 +22,7 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
     return ListTile(
       // shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       title: Text(
-        hamProxyName(proxy.tagDisplay, type: proxy.type),
+        gorecProxyName(proxy.tagDisplay, type: proxy.type),
         overflow: TextOverflow.ellipsis,
         style: PlatformUtils.isWindows ? const TextStyle(fontFamily: FontFamily.emoji) : null,
       ),
@@ -33,7 +33,7 @@ class ProxyTile extends HookConsumerWidget with PresLogger {
         padding: const EdgeInsetsDirectional.only(end: 8),
       ),
       subtitle: Text(
-        hamProxySubtitle(type: proxy.type, isGroup: proxy.isGroup, selected: proxy.groupSelectedTagDisplay),
+        gorecProxySubtitle(type: proxy.type, isGroup: proxy.isGroup, selected: proxy.groupSelectedTagDisplay),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
       ),

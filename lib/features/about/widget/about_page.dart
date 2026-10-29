@@ -9,9 +9,9 @@ import 'package:hiddify/core/model/constants.dart';
 import 'package:hiddify/core/model/failures.dart';
 import 'package:hiddify/core/router/dialog/dialog_notifier.dart';
 import 'package:hiddify/core/widget/adaptive_icon.dart';
-import 'package:hiddify/hamvpn/updater.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
-import 'package:hiddify/hamvpn/info_pages.dart';
+import 'package:hiddify/gorec/updater.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
+import 'package:hiddify/gorec/info_pages.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -28,7 +28,7 @@ class AboutPage extends HookConsumerWidget {
           title: const Text('Проверить обновления'),
           subtitle: Text('Установлена версия ${appInfo.version}'),
           trailing: const Icon(FluentIcons.arrow_sync_24_regular),
-          onTap: () => HamUpdater.manualCheck(context, ref),
+          onTap: () => GorecUpdater.manualCheck(context, ref),
         ),
       if (PlatformUtils.isDesktop)
         ListTile(
@@ -69,7 +69,7 @@ class AboutPage extends HookConsumerWidget {
               child: Row(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Image.asset('assets/images/hamvpn_logo.png', width: 64, height: 64),
+                  Image.asset('assets/images/gorec_logo.png', width: 64, height: 64),
                   const Gap(16),
                   Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
@@ -87,7 +87,7 @@ class AboutPage extends HookConsumerWidget {
             delegate: SliverChildListDelegate([
               ...conditionalTiles,
               if (conditionalTiles.isNotEmpty) const Divider(),
-              // ХамВПН: свои ссылки и документы прямо в приложении
+              // Горец: свои ссылки и документы прямо в приложении
               ListTile(
                 leading: const Icon(Icons.language_rounded),
                 title: const Text('Перейти на официальный сайт'),
@@ -105,21 +105,21 @@ class AboutPage extends HookConsumerWidget {
                 ),
               ListTile(
                 leading: const Icon(Icons.description_rounded),
-                title: Text(HamInfo.offer.shortTitle),
+                title: Text(GorecInfo.offer.shortTitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => HamInfoPage.open(context, HamInfo.offer),
+                onTap: () => GorecInfoPage.open(context, GorecInfo.offer),
               ),
               ListTile(
                 leading: const Icon(Icons.gavel_rounded),
-                title: Text(HamInfo.terms.shortTitle),
+                title: Text(GorecInfo.terms.shortTitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => HamInfoPage.open(context, HamInfo.terms),
+                onTap: () => GorecInfoPage.open(context, GorecInfo.terms),
               ),
               ListTile(
                 leading: const Icon(Icons.privacy_tip_rounded),
-                title: Text(HamInfo.privacy.shortTitle),
+                title: Text(GorecInfo.privacy.shortTitle),
                 trailing: const Icon(Icons.chevron_right_rounded),
-                onTap: () => HamInfoPage.open(context, HamInfo.privacy),
+                onTap: () => GorecInfoPage.open(context, GorecInfo.privacy),
               ),
               const Divider(),
               // Требование лицензии Hiddify: указать, что приложение основано на нём, и дать ссылку на лицензию

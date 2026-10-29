@@ -6,8 +6,8 @@ import 'package:flutter/services.dart';
 import 'package:gap/gap.dart';
 import 'package:hiddify/core/utils/preferences_utils.dart';
 import 'package:hiddify/features/window/notifier/window_notifier.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
@@ -18,12 +18,12 @@ import 'package:url_launcher/url_launcher.dart';
 /// Сайт отвечает на /api/app/v1/update, есть ли версия новее установленной,
 /// и даёт ссылку на файл именно для этого устройства:
 ///  * Android — APK под процессор телефона, открывается системный установщик;
-///  * Windows — установщик HamVPN-Windows-Setup.exe, ставится тихо поверх
+///  * Windows — установщик Gorec-Windows-Setup.exe, ставится тихо поверх
 ///    старой версии и сам запускает программу заново.
 /// Обе версии выпускаются одной сборкой (номер сборки общий), поэтому одно
 /// обновление приходит сразу и на телефоны, и на компьютеры. Вход и настройки сохраняются.
-class HamUpdateInfo {
-  HamUpdateInfo(Map<String, dynamic> d)
+class GorecUpdateInfo {
+  GorecUpdateInfo(Map<String, dynamic> d)
     : version = (d['version'] as String?) ?? '',
       build = ((d['build'] as num?) ?? 0).toInt(),
       notes = (d['notes'] as String?) ?? '',
@@ -41,16 +41,16 @@ class HamUpdateInfo {
   final bool force;
 }
 
-abstract class HamUpdatePrefs {
+abstract class GorecUpdatePrefs {
   /// Номер сборки, которую человек отложил кнопкой «Позже» (напомним через сутки).
-  static final skippedBuild = PreferencesNotifier.create<int, int>('hamvpn_update_skipped', 0);
-  static final skippedAt = PreferencesNotifier.create<int, int>('hamvpn_update_skipped_at', 0);
+  static final skippedBuild = PreferencesNotifier.create<int, int>('gorec_update_skipped', 0);
+  static final skippedAt = PreferencesNotifier.create<int, int>('gorec_update_skipped_at', 0);
 }
 
-const _channel = MethodChannel('com.hamvpn.app/update');
+const _channel = MethodChannel('com.gorec.app/update');
 
-class HamUpdater {
-  HamUpdater._();
+class GorecUpdater {
+  GorecUpdater._();
 
   static DateTime? _lastAutoCheck;
   static bool _dialogOpen = false;
@@ -73,12 +73,12 @@ class HamUpdater {
     return int.tryParse(info.buildNumber) ?? 0;
   }
 
-  static Future<HamUpdateInfo?> fetch(WidgetRef ref) async {
+  static Future<GorecUpdateInfo?> fetch(WidgetRef ref) async {
     final data = await ref
-        .read(hamApiProvider)
+        .read(gorecApiProvider)
         .update(await _abi(), await currentBuild(), platform: Platform.isWindows ? 'windows' : 'android');
     if (data['available'] != true) return null;
-    final info = HamUpdateInfo(data);
+    final info = GorecUpdateInfo(data);
     return info.url.isEmpty ? null : info;
   }
 
@@ -92,8 +92,8 @@ class HamUpdater {
       final info = await fetch(ref);
       if (info == null || !context.mounted) return;
       if (!info.force) {
-        final skipped = ref.read(HamUpdatePrefs.skippedBuild);
-        final at = DateTime.fromMillisecondsSinceEpoch(ref.read(HamUpdatePrefs.skippedAt));
+        final skipped = ref.read(GorecUpdatePrefs.skippedBuild);
+        final at = DateTime.fromMillisecondsSinceEpoch(ref.read(GorecUpdatePrefs.skippedAt));
         if (skipped == info.build && now.difference(at) < const Duration(days: 1)) return;
       }
       await showOffer(context, ref, info);
@@ -113,12 +113,12 @@ class HamUpdater {
         return;
       }
       await showOffer(context, ref, info);
-    } on HamApiException catch (e) {
+    } on GorecApiException catch (e) {
       if (context.mounted) snack(e.message);
     }
   }
 
-  static Future<void> showOffer(BuildContext context, WidgetRef ref, HamUpdateInfo info) async {
+  static Future<void> showOffer(BuildContext context, WidgetRef ref, GorecUpdateInfo info) async {
     _dialogOpen = true;
     try {
       final mb = info.size > 0 ? ' · ${(info.size / 1024 / 1024).toStringAsFixed(0)} МБ' : '';
@@ -154,8 +154,8 @@ class HamUpdater {
       if (ok == true) {
         if (context.mounted) await _downloadAndInstall(context, ref, info);
       } else {
-        await ref.read(HamUpdatePrefs.skippedBuild.notifier).update(info.build);
-        await ref.read(HamUpdatePrefs.skippedAt.notifier).update(DateTime.now().millisecondsSinceEpoch);
+        await ref.read(GorecUpdatePrefs.skippedBuild.notifier).update(info.build);
+        await ref.read(GorecUpdatePrefs.skippedAt.notifier).update(DateTime.now().millisecondsSinceEpoch);
       }
     } finally {
       _dialogOpen = false;
@@ -165,7 +165,7 @@ class HamUpdater {
   static Future<void> _openInBrowser() =>
       launchUrl(Uri.parse('$kHamSiteUrl/download'), mode: LaunchMode.externalApplication);
 
-  static Future<void> _downloadAndInstall(BuildContext context, WidgetRef ref, HamUpdateInfo info) async {
+  static Future<void> _downloadAndInstall(BuildContext context, WidgetRef ref, GorecUpdateInfo info) async {
     // Android просит один раз разрешить установку из этого приложения
     final can = Platform.isWindows
         ? true
@@ -248,7 +248,7 @@ class HamUpdater {
       final dir = Directory('${(await getTemporaryDirectory()).path}/updates');
       if (dir.existsSync()) dir.deleteSync(recursive: true);
       dir.createSync(recursive: true);
-      path = Platform.isWindows ? '${dir.path}\\HamVPN-Setup-${info.build}.exe' : '${dir.path}/HamVPN-${info.build}.apk';
+      path = Platform.isWindows ? '${dir.path}\\Gorec-Setup-${info.build}.exe' : '${dir.path}/Gorec-${info.build}.apk';
       await Dio(BaseOptions(connectTimeout: const Duration(seconds: 20))).download(
         info.url,
         path,
@@ -305,7 +305,7 @@ class HamUpdater {
     try {
       await Process.start(
         path,
-        ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS', '/HAMUPDATE'],
+        ['/VERYSILENT', '/SUPPRESSMSGBOXES', '/NORESTART', '/CLOSEAPPLICATIONS', '/GORECUPDATE'],
         mode: ProcessStartMode.detached,
       );
     } catch (_) {
@@ -324,7 +324,7 @@ class HamUpdater {
         barrierDismissible: false,
         builder: (_) => const AlertDialog(
           title: Text('Устанавливаем обновление'),
-          content: Text('ХамВПН закроется на несколько секунд и откроется уже новой версией.'),
+          content: Text('Горец закроется на несколько секунд и откроется уже новой версией.'),
         ),
       );
     }

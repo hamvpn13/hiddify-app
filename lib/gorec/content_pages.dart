@@ -3,9 +3,9 @@ import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:flutter_markdown_plus/flutter_markdown_plus.dart';
 import 'package:gap/gap.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -42,11 +42,11 @@ class _Loader extends StatelessWidget {
 }
 
 /// Инструкции — текст берётся с сайта (/api/app/v1/instructions), его можно менять без обновления приложения.
-class HamInstructionsPage extends HookConsumerWidget {
-  const HamInstructionsPage({super.key});
+class GorecInstructionsPage extends HookConsumerWidget {
+  const GorecInstructionsPage({super.key});
 
   static Future<void> open(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HamInstructionsPage()));
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GorecInstructionsPage()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -56,9 +56,9 @@ class HamInstructionsPage extends HookConsumerWidget {
     Future<void> load() async {
       error.value = null;
       try {
-        final data = await ref.read(hamApiProvider).instructions();
+        final data = await ref.read(gorecApiProvider).instructions();
         text.value = (data['markdown'] as String?) ?? '';
-      } on HamApiException catch (e) {
+      } on GorecApiException catch (e) {
         error.value = e.message;
       }
     }
@@ -101,25 +101,25 @@ class HamInstructionsPage extends HookConsumerWidget {
 }
 
 /// «Заработать с нами» — как раздел на сайте, все цифры и условия приходят с сервера.
-class HamReferralPage extends HookConsumerWidget {
-  const HamReferralPage({super.key});
+class GorecReferralPage extends HookConsumerWidget {
+  const GorecReferralPage({super.key});
 
   static Future<void> open(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HamReferralPage()));
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GorecReferralPage()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final data = useState<Map<String, dynamic>?>(null);
     final error = useState<String?>(null);
     final busy = useState(false);
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     final theme = Theme.of(context);
 
     Future<void> load() async {
       error.value = null;
       try {
-        data.value = await ref.read(hamAccountProvider.notifier).referral();
-      } on HamApiException catch (e) {
+        data.value = await ref.read(gorecAccountProvider.notifier).referral();
+      } on GorecApiException catch (e) {
         error.value = e.message;
       }
     }
@@ -142,9 +142,9 @@ class HamReferralPage extends HookConsumerWidget {
     Future<void> transfer() async {
       busy.value = true;
       try {
-        snack(await ref.read(hamAccountProvider.notifier).referralTransfer());
+        snack(await ref.read(gorecAccountProvider.notifier).referralTransfer());
         await load();
-      } on HamApiException catch (e) {
+      } on GorecApiException catch (e) {
         snack(e.message);
       } finally {
         busy.value = false;
@@ -183,9 +183,9 @@ class HamReferralPage extends HookConsumerWidget {
       if (ok != true) return;
       busy.value = true;
       try {
-        snack(await ref.read(hamAccountProvider.notifier).referralPayout(amount.text, details.text));
+        snack(await ref.read(gorecAccountProvider.notifier).referralPayout(amount.text, details.text));
         await load();
-      } on HamApiException catch (e) {
+      } on GorecApiException catch (e) {
         snack(e.message);
       } finally {
         busy.value = false;
@@ -195,7 +195,7 @@ class HamReferralPage extends HookConsumerWidget {
     Widget stat(String label, String value) => Expanded(
       child: Container(
         padding: const EdgeInsets.all(14),
-        decoration: BoxDecoration(color: k.bgElev, borderRadius: BorderRadius.circular(HamTokens.radiusSm)),
+        decoration: BoxDecoration(color: k.bgElev, borderRadius: BorderRadius.circular(GorecTokens.radiusSm)),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
@@ -219,7 +219,7 @@ class HamReferralPage extends HookConsumerWidget {
           child: ListView(
             padding: const EdgeInsets.fromLTRB(16, 12, 16, 40),
             children: [
-              HamCard(
+              GorecCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
@@ -234,7 +234,7 @@ class HamReferralPage extends HookConsumerWidget {
                     const Gap(14),
                     Container(
                       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-                      decoration: BoxDecoration(color: k.bgSunken, borderRadius: BorderRadius.circular(HamTokens.radiusSm)),
+                      decoration: BoxDecoration(color: k.bgSunken, borderRadius: BorderRadius.circular(GorecTokens.radiusSm)),
                       child: SelectableText(link, style: const TextStyle(fontSize: 13.5)),
                     ),
                     const Gap(10),
@@ -245,7 +245,7 @@ class HamReferralPage extends HookConsumerWidget {
                             icon: const Icon(Icons.share_rounded),
                             onPressed: link.isEmpty
                                 ? null
-                                : () => Share.share('Подключайся к Хам VPN — первые дни бесплатно, по моей ссылке ещё и бонус: $link'),
+                                : () => Share.share('Подключайся к Горец — первые дни бесплатно, по моей ссылке ещё и бонус: $link'),
                             label: const Text('Поделиться'),
                           ),
                         ),
@@ -279,18 +279,18 @@ class HamReferralPage extends HookConsumerWidget {
                   const Gap(8),
                   stat('оплачивали', '${stats['paying'] ?? 0}'),
                   const Gap(8),
-                  stat('заработано', hamRub(num0(stats['earned_rub']))),
+                  stat('заработано', gorecRub(num0(stats['earned_rub']))),
                 ],
               ),
               const Gap(12),
-              HamCard(
+              GorecCard(
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     Text('Ваши реферальные деньги', style: TextStyle(color: k.textDim)),
-                    Text(hamRub(balance), style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
+                    Text(gorecRub(balance), style: theme.textTheme.headlineMedium?.copyWith(fontWeight: FontWeight.w700)),
                     if (num0(stats['pending_payout_rub']) > 0)
-                      Text('Ждёт вывода: ${hamRub(num0(stats['pending_payout_rub']))}', style: TextStyle(color: k.amber)),
+                      Text('Ждёт вывода: ${gorecRub(num0(stats['pending_payout_rub']))}', style: TextStyle(color: k.amber)),
                     const Gap(12),
                     Row(
                       children: [
@@ -325,7 +325,7 @@ class HamReferralPage extends HookConsumerWidget {
                       ((r['at'] as String?) ?? '').split(' ').first,
                     ].join(' · ')),
                     trailing: Text(
-                      '${num0(r['amount_rub']) >= 0 ? '+' : ''}${hamRub(num0(r['amount_rub']))}',
+                      '${num0(r['amount_rub']) >= 0 ? '+' : ''}${gorecRub(num0(r['amount_rub']))}',
                       style: TextStyle(
                         fontWeight: FontWeight.w600,
                         color: num0(r['amount_rub']) >= 0 ? k.green : k.red,

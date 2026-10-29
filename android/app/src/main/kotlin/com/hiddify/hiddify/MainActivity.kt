@@ -49,7 +49,7 @@ class MainActivity : FlutterFragmentActivity(), ServiceConnection.Callback {
         flutterEngine.plugins.add(PlatformSettingsHandler())
         flutterEngine.plugins.add(EventHandler())
         flutterEngine.plugins.add(LogHandler())
-        flutterEngine.plugins.add(HamUpdateChannel())
+        flutterEngine.plugins.add(GorecUpdateChannel())
 //        flutterEngine.plugins.add(GroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(ActiveGroupsChannel(lifecycleScope))
 //        flutterEngine.plugins.add(StatsChannel(lifecycleScope))

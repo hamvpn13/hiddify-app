@@ -62,7 +62,7 @@ class ConnectionButton extends HookConsumerWidget {
     //   //   },
     //   // );
 
-    // ХамВПН: цвета кнопки из темы (как на сайте), а не фиксированные цвета Hiddify
+    // Горец: цвета кнопки из темы (как на сайте), а не фиксированные цвета Hiddify
     final buttonTheme = Theme.of(context).extension<ConnectionButtonTheme>() ?? ConnectionButtonTheme.light;
 
     //   // return CircleDesignWidget(

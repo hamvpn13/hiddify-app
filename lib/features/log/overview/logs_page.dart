@@ -140,7 +140,7 @@ class LogsPage extends HookConsumerWidget with PresLogger {
               reverse: true,
               slivers: <Widget>[
                 switch (state.logs) {
-                  // ХамВПН: пустой журнал — объясняем, а не показываем белый экран
+                  // Горец: пустой журнал — объясняем, а не показываем белый экран
                   AsyncData(value: final logs) when logs.isEmpty => const SliverFillRemaining(
                     hasScrollBody: false,
                     child: Center(

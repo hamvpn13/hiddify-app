@@ -8,7 +8,7 @@ import 'package:hiddify/features/common/general_pref_tiles.dart';
 import 'package:hiddify/features/per_app_proxy/model/per_app_proxy_mode.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/features/settings/notifier/config_option/config_option_notifier.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
 import 'package:hiddify/utils/utils.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
@@ -25,7 +25,7 @@ enum ConfigOptionSection {
   };
 }
 
-/// ХамВПН: короткие и понятные настройки для обычного человека.
+/// Горец: короткие и понятные настройки для обычного человека.
 /// Технические разделы Hiddify (DNS, входящие порты, TLS-трюки, WARP, ядро и т.п.)
 /// убраны из интерфейса — их значения по умолчанию подходят всем.
 class SettingsPage extends HookConsumerWidget {
@@ -36,7 +36,7 @@ class SettingsPage extends HookConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     final ruDirect = ref.watch(ConfigOptions.region) == Region.ru;
     final perApp = ref.watch(Preferences.perAppProxyMode);
 
@@ -51,7 +51,7 @@ class SettingsPage extends HookConsumerWidget {
           margin: const EdgeInsets.only(bottom: 18),
           decoration: BoxDecoration(
             color: k.bgElev,
-            borderRadius: BorderRadius.circular(HamTokens.radius),
+            borderRadius: BorderRadius.circular(GorecTokens.radius),
           ),
           clipBehavior: Clip.antiAlias,
           child: Column(

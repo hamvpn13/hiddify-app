@@ -10,28 +10,28 @@ import 'package:hiddify/features/profile/data/profile_data_providers.dart';
 import 'package:hiddify/features/profile/model/profile_entity.dart';
 import 'package:hiddify/features/settings/data/config_option_repository.dart';
 import 'package:hiddify/gen/translations.g.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 
-/// Имя профиля, под которым подписка ХамВПН видна внутри движка Hiddify.
-const String kHamProfileName = 'ХамВПН';
+/// Имя профиля, под которым подписка Горец видна внутри движка Hiddify.
+const String kHamProfileName = 'Горец';
 
-abstract class HamPrefs {
-  /// Токен входа в аккаунт ХамВПН. Пустая строка — не вошли.
-  static final token = PreferencesNotifier.create<String, String>('hamvpn_token', '');
+abstract class GorecPrefs {
+  /// Токен входа в аккаунт Горец. Пустая строка — не вошли.
+  static final token = PreferencesNotifier.create<String, String>('gorec_token', '');
 
   /// Ссылка подписки, которую приложение уже добавило в Hiddify.
-  static final profileUrl = PreferencesNotifier.create<String, String>('hamvpn_profile_url', '');
+  static final profileUrl = PreferencesNotifier.create<String, String>('gorec_profile_url', '');
 
   /// Логин — чтобы приветствие «Добрый день, …» было видно сразу при запуске.
-  static final login = PreferencesNotifier.create<String, String>('hamvpn_login', '');
+  static final login = PreferencesNotifier.create<String, String>('gorec_login', '');
 }
 
-final hamApiProvider = Provider<HamApi>((ref) => HamApi());
+final gorecApiProvider = Provider<GorecApi>((ref) => GorecApi());
 
 /// Состояние аккаунта: последний ответ /me (баланс, дни, конфигурации).
-class HamAccountState {
-  const HamAccountState({this.me, this.loading = false, this.error});
+class GorecAccountState {
+  const GorecAccountState({this.me, this.loading = false, this.error});
 
   final Map<String, dynamic>? me;
   final bool loading;
@@ -54,22 +54,22 @@ class HamAccountState {
 
   String link(String key) => (links[key] as String?) ?? '';
 
-  HamAccountState copyWith({Map<String, dynamic>? me, bool? loading, String? error, bool clearError = false}) =>
-      HamAccountState(
+  GorecAccountState copyWith({Map<String, dynamic>? me, bool? loading, String? error, bool clearError = false}) =>
+      GorecAccountState(
         me: me ?? this.me,
         loading: loading ?? this.loading,
         error: clearError ? null : (error ?? this.error),
       );
 }
 
-final hamAccountProvider = NotifierProvider<HamAccountNotifier, HamAccountState>(HamAccountNotifier.new);
+final gorecAccountProvider = NotifierProvider<GorecAccountNotifier, GorecAccountState>(GorecAccountNotifier.new);
 
-class HamAccountNotifier extends Notifier<HamAccountState> {
+class GorecAccountNotifier extends Notifier<GorecAccountState> {
   @override
-  HamAccountState build() => const HamAccountState();
+  GorecAccountState build() => const GorecAccountState();
 
-  HamApi get _api => ref.read(hamApiProvider);
-  String get _token => ref.read(HamPrefs.token);
+  GorecApi get _api => ref.read(gorecApiProvider);
+  String get _token => ref.read(GorecPrefs.token);
 
   String _deviceName() {
     try {
@@ -95,12 +95,12 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
 
   Future<void> _afterAuth(Map<String, dynamic> data) async {
     final token = data['token'] as String? ?? '';
-    state = HamAccountState(me: data);
-    await ref.read(HamPrefs.login.notifier).update(state.login);
+    state = GorecAccountState(me: data);
+    await ref.read(GorecPrefs.login.notifier).update(state.login);
     await _applyFirstLaunchDefaults();
     await syncProfile();
     // Токен сохраняем последним: на него завязан переход на главный экран
-    await ref.read(HamPrefs.token.notifier).update(token);
+    await ref.read(GorecPrefs.token.notifier).update(token);
   }
 
   Future<String?> login(String login, String password) async {
@@ -109,7 +109,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       final data = await _api.login(login.trim(), password, _deviceName());
       await _afterAuth(data);
       return null;
-    } on HamApiException catch (e) {
+    } on GorecApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
     }
@@ -121,7 +121,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       final data = await _api.register(login.trim(), password, _deviceName(), ref: ref);
       await _afterAuth(data);
       return null;
-    } on HamApiException catch (e) {
+    } on GorecApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
     }
@@ -135,13 +135,13 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
     try {
       final data = await _api.loginByLink(linkToken, _deviceName());
       final newLogin = (Map<String, dynamic>.from((data['user'] as Map?) ?? const {})['login'] as String?) ?? '';
-      final current = ref.read(HamPrefs.login);
+      final current = ref.read(GorecPrefs.login);
       if (_token.isNotEmpty && current.isNotEmpty && current != newLogin) {
         await logout(callServer: false);
       }
       await _afterAuth(data);
       return null;
-    } on HamApiException catch (e) {
+    } on GorecApiException catch (e) {
       state = state.copyWith(loading: false, error: e.message);
       return e.message;
     }
@@ -157,7 +157,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       final data = await _api.webLoginLink(token);
       final url = data['url'] as String?;
       return (url == null || url.isEmpty) ? fallback : url;
-    } on HamApiException {
+    } on GorecApiException {
       return fallback;
     }
   }
@@ -169,12 +169,12 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
     state = state.copyWith(loading: true, clearError: true);
     try {
       final data = await _api.me(token);
-      state = HamAccountState(me: data);
-      if (state.login.isNotEmpty && state.login != ref.read(HamPrefs.login)) {
-        await ref.read(HamPrefs.login.notifier).update(state.login);
+      state = GorecAccountState(me: data);
+      if (state.login.isNotEmpty && state.login != ref.read(GorecPrefs.login)) {
+        await ref.read(GorecPrefs.login.notifier).update(state.login);
       }
       await syncProfile();
-    } on HamApiException catch (e) {
+    } on GorecApiException catch (e) {
       if (e.isUnauthorized) {
         await logout(callServer: false);
         return;
@@ -219,7 +219,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       await repo.setAsActive(ours.id).run();
     }
     if (ours != null) {
-      await ref.read(HamPrefs.profileUrl.notifier).update(url);
+      await ref.read(GorecPrefs.profileUrl.notifier).update(url);
     }
   }
 
@@ -234,17 +234,17 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
       final repo = await ref.read(profileRepositoryProvider.future);
       final all = await repo.watchAll().first;
       final list = all.getOrElse((_) => <ProfileEntity>[]);
-      final ourUrl = ref.read(HamPrefs.profileUrl);
+      final ourUrl = ref.read(GorecPrefs.profileUrl);
       for (final p in list) {
         if (p is RemoteProfileEntity && (p.url == ourUrl || p.url.startsWith(kHamSiteUrl))) {
           await repo.deleteById(p.id, p.active).run();
         }
       }
     } catch (_) {}
-    await ref.read(HamPrefs.profileUrl.notifier).update('');
-    await ref.read(HamPrefs.login.notifier).update('');
-    state = const HamAccountState();
-    await ref.read(HamPrefs.token.notifier).update('');
+    await ref.read(GorecPrefs.profileUrl.notifier).update('');
+    await ref.read(GorecPrefs.login.notifier).update('');
+    state = const GorecAccountState();
+    await ref.read(GorecPrefs.token.notifier).update('');
   }
 
   Future<List<Map<String, dynamic>>> plans() async {
@@ -283,7 +283,7 @@ class HamAccountNotifier extends Notifier<HamAccountState> {
 
   Future<String> redeemPromo(String code) async {
     final data = await _api.promo(_token, code);
-    state = HamAccountState(me: data);
+    state = GorecAccountState(me: data);
     return (data['message'] as String?) ?? 'Промокод активирован!';
   }
 }

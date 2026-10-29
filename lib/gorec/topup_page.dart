@@ -3,19 +3,19 @@ import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 /// Пополнение баланса: срок (1/3/6 мес. со скидками) → карта или СБП → страница Lava.
 /// Деньги зачисляет сервер по уведомлению Lava; приложение просто ждёт и обновляет баланс.
-class HamTopupPage extends HookConsumerWidget {
-  const HamTopupPage({super.key});
+class GorecTopupPage extends HookConsumerWidget {
+  const GorecTopupPage({super.key});
 
   static Future<void> open(BuildContext context) =>
-      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const HamTopupPage()));
+      Navigator.of(context).push(MaterialPageRoute<void>(builder: (_) => const GorecTopupPage()));
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
@@ -27,15 +27,15 @@ class HamTopupPage extends HookConsumerWidget {
     final paying = useState(false);
     final waitingId = useState<int?>(null);
     final paid = useState(false);
-    final account = ref.watch(hamAccountProvider);
+    final account = ref.watch(gorecAccountProvider);
 
     Future<void> load() async {
       loadError.value = null;
       try {
-        final notifier = ref.read(hamAccountProvider.notifier);
+        final notifier = ref.read(gorecAccountProvider.notifier);
         plans.value = await notifier.plans();
         methods.value = await notifier.payMethods();
-      } on HamApiException catch (e) {
+      } on GorecApiException catch (e) {
         loadError.value = e.message;
       }
     }
@@ -49,10 +49,10 @@ class HamTopupPage extends HookConsumerWidget {
       final id = waitingId.value;
       if (id == null || paid.value) return;
       try {
-        final status = await ref.read(hamAccountProvider.notifier).topupStatus(id);
+        final status = await ref.read(gorecAccountProvider.notifier).topupStatus(id);
         if (status == 'approved') {
           paid.value = true;
-          await ref.read(hamAccountProvider.notifier).refresh();
+          await ref.read(gorecAccountProvider.notifier).refresh();
         }
       } catch (_) {}
     }
@@ -76,10 +76,10 @@ class HamTopupPage extends HookConsumerWidget {
     Future<void> pay() async {
       paying.value = true;
       try {
-        final (url, id) = await ref.read(hamAccountProvider.notifier).createTopup(months.value, method.value);
+        final (url, id) = await ref.read(gorecAccountProvider.notifier).createTopup(months.value, method.value);
         waitingId.value = id;
         await launchUrl(Uri.parse(url), mode: LaunchMode.externalApplication);
-      } on HamApiException catch (e) {
+      } on GorecApiException catch (e) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(e.message)));
         }
@@ -114,7 +114,7 @@ class HamTopupPage extends HookConsumerWidget {
         padding: const EdgeInsets.all(16),
         children: [
           Text(
-            'Баланс: ${hamRub(account.balanceRub)}',
+            'Баланс: ${gorecRub(account.balanceRub)}',
             style: theme.textTheme.titleMedium?.copyWith(fontWeight: FontWeight.w700),
           ),
           const Gap(4),
@@ -212,7 +212,7 @@ class _StepLabel extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     return Text(text, style: TextStyle(color: k.textDim, fontSize: 15, fontWeight: FontWeight.w600));
   }
 }
@@ -235,7 +235,7 @@ class _PlanTile extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     final title = switch (months) {
       1 => '1 месяц',
       3 => '3 месяца',
@@ -243,14 +243,14 @@ class _PlanTile extends StatelessWidget {
       _ => '$months мес.',
     };
     return InkWell(
-      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+      borderRadius: BorderRadius.circular(GorecTokens.radiusSm),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.fromLTRB(8, 14, 8, 12),
         decoration: BoxDecoration(
           color: selected ? k.accentSoft : k.bgSunken,
-          borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+          borderRadius: BorderRadius.circular(GorecTokens.radiusSm),
           border: Border.all(color: selected ? k.accent : k.border, width: 2),
         ),
         child: Column(
@@ -263,7 +263,7 @@ class _PlanTile extends StatelessWidget {
             const Gap(6),
             Text(title, style: TextStyle(color: k.text, fontWeight: FontWeight.w700, fontSize: 15.5)),
             const Gap(2),
-            Text(hamRub(amount), style: TextStyle(color: k.text, fontSize: 15)),
+            Text(gorecRub(amount), style: TextStyle(color: k.text, fontSize: 15)),
             if (discount > 0)
               Text('скидка $discount%', style: TextStyle(color: k.green, fontSize: 12.5, fontWeight: FontWeight.w600)),
             if (selected) ...[
@@ -290,16 +290,16 @@ class _MethodChip extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     return InkWell(
-      borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+      borderRadius: BorderRadius.circular(GorecTokens.radiusSm),
       onTap: onTap,
       child: AnimatedContainer(
         duration: const Duration(milliseconds: 150),
         padding: const EdgeInsets.symmetric(vertical: 14),
         decoration: BoxDecoration(
           color: selected ? k.accentSoft : k.bgSunken,
-          borderRadius: BorderRadius.circular(HamTokens.radiusSm),
+          borderRadius: BorderRadius.circular(GorecTokens.radiusSm),
           border: Border.all(color: selected ? k.accent : k.border, width: 2),
         ),
         child: Column(
@@ -322,7 +322,7 @@ class _Done extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final k = HamTokens.of(context);
+    final k = GorecTokens.of(context);
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(24),
@@ -334,7 +334,7 @@ class _Done extends StatelessWidget {
             Text('Оплата получена!', style: TextStyle(color: k.text, fontSize: 24, fontWeight: FontWeight.w700)),
             const Gap(8),
             Text(
-              'Баланс: ${hamRub(balance)}. Хватит примерно на ${hamDays(daysLeft)}.',
+              'Баланс: ${gorecRub(balance)}. Хватит примерно на ${gorecDays(daysLeft)}.',
               textAlign: TextAlign.center,
               style: TextStyle(color: k.textDim, fontSize: 16),
             ),

@@ -4,7 +4,7 @@
 /// «🇩🇪 Германия · XHTTP (login)» — второй вариант это запасной способ
 /// подключения к той же стране. Служебные группы движка (автовыбор, ручной
 /// выбор) получают русские названия.
-String hamProxyName(String raw, {String type = ''}) {
+String gorecProxyName(String raw, {String type = ''}) {
   final t = type.toLowerCase();
   final lower = raw.toLowerCase().trim();
   if (t == 'urltest' || lower.contains('auto') || lower.contains('lowest')) {
@@ -21,12 +21,12 @@ String hamProxyName(String raw, {String type = ''}) {
 }
 
 /// Подпись под именем: вместо технического «vless / urltest» — понятный текст.
-String hamProxySubtitle({required String type, required bool isGroup, String selected = ''}) {
+String gorecProxySubtitle({required String type, required bool isGroup, String selected = ''}) {
   final t = type.toLowerCase();
   if (isGroup) {
     final s = selected.trim();
-    if (t == 'urltest') return s.isEmpty ? 'Сам выбирает самый быстрый сервер' : 'Сейчас: ${hamProxyName(s)}';
-    return s.isEmpty ? '' : 'Сейчас: ${hamProxyName(s)}';
+    if (t == 'urltest') return s.isEmpty ? 'Сам выбирает самый быстрый сервер' : 'Сейчас: ${gorecProxyName(s)}';
+    return s.isEmpty ? '' : 'Сейчас: ${gorecProxyName(s)}';
   }
   return 'Сервер';
 }

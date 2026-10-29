@@ -9,12 +9,12 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-/** Установка обновления ХамВПН, скачанного с gorec.vip, через системный установщик. */
-class HamUpdateChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
+/** Установка обновления Горец, скачанного с gorec.vip, через системный установщик. */
+class GorecUpdateChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var channel: MethodChannel? = null
 
     override fun onAttachedToEngine(binding: FlutterPlugin.FlutterPluginBinding) {
-        channel = MethodChannel(binding.binaryMessenger, "com.hamvpn.app/update").also { it.setMethodCallHandler(this) }
+        channel = MethodChannel(binding.binaryMessenger, "com.gorec.app/update").also { it.setMethodCallHandler(this) }
     }
 
     override fun onDetachedFromEngine(binding: FlutterPlugin.FlutterPluginBinding) {
@@ -40,7 +40,7 @@ class HamUpdateChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
                 }
                 "install" -> {
                     val path = call.argument<String>("path") ?: throw IllegalArgumentException("no path")
-                    val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.hamupdate", File(path))
+                    val uri = FileProvider.getUriForFile(ctx, "${ctx.packageName}.gorecupdate", File(path))
                     val intent = Intent(Intent.ACTION_VIEW).apply {
                         setDataAndType(uri, "application/vnd.android.package-archive")
                         addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION or Intent.FLAG_ACTIVITY_NEW_TASK)

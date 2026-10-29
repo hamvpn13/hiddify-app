@@ -90,7 +90,7 @@ class App extends HookConsumerWidget with WidgetsBindingObserver, PresLogger {
                   title: Constants.appName,
                   builder: (context, child) {
                     final theme = Theme.of(context);
-                    // ХамВПН: обновления — со своего сайта (lib/hamvpn/updater.dart), не через Hiddify
+                    // Горец: обновления — со своего сайта (lib/gorec/updater.dart), не через Hiddify
                     child = child ?? const SizedBox();
                     if (kDebugMode && _debugAccessibility) {
                       return AccessibilityTools(checkFontOverflows: true, child: child);

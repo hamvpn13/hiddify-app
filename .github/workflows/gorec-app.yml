@@ -1,7 +1,7 @@
-name: HamVPN Android + Windows
+name: Gorec Android + Windows
 
-# Сборка ХамВПН сразу для Android (APK) и Windows (установщик).
-# Запуск вручную: Actions -> HamVPN Android + Windows -> Run workflow.
+# Сборка Горец сразу для Android (APK) и Windows (установщик).
+# Запуск вручную: Actions -> Gorec Android + Windows -> Run workflow.
 # С галочкой publish обе версии выкладываются вместе (релиз app-latest, общий номер
 # сборки) — сайт забирает их, и обновление приходит и на телефоны, и на компьютеры.
 on:
@@ -70,13 +70,13 @@ jobs:
             if [ "${{ inputs.publish }}" = "true" ]; then echo "::error::Публиковать без постоянного ключа нельзя"; exit 1; fi
             exit 0
           fi
-          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/hamvpn-release.jks"
+          echo "$KEYSTORE_B64" | base64 -d > "$RUNNER_TEMP/gorec-release.jks"
           PW="$(printf '%s' "$KEYSTORE_PASSWORD" | tr -d '\r\n')"
           {
-            echo "storeFile=$RUNNER_TEMP/hamvpn-release.jks"
+            echo "storeFile=$RUNNER_TEMP/gorec-release.jks"
             echo "storePassword=$PW"
             echo "keyPassword=$PW"
-            echo "keyAlias=hamvpn"
+            echo "keyAlias=gorec"
           } > android/key.properties
 
       - name: Version
@@ -98,42 +98,42 @@ jobs:
           mkdir -p out
           D=build/app/outputs/flutter-apk
           ls -la $D
-          cp $D/app-arm64-v8a-release.apk   out/HamVPN-arm64.apk
-          cp $D/app-armeabi-v7a-release.apk out/HamVPN-arm7.apk
-          cp $D/app-x86_64-release.apk      out/HamVPN-x86_64.apk
-          cp $D/app-release.apk             out/HamVPN-universal.apk
+          cp $D/app-arm64-v8a-release.apk   out/Gorec-arm64.apk
+          cp $D/app-armeabi-v7a-release.apk out/Gorec-arm7.apk
+          cp $D/app-x86_64-release.apk      out/Gorec-x86_64.apk
+          cp $D/app-release.apk             out/Gorec-universal.apk
           ls -la out
 
       # Каждый вариант — отдельным файлом для скачивания
       - name: Upload arm64 (для большинства телефонов)
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-arm64
-          path: out/HamVPN-arm64.apk
+          name: Gorec-arm64
+          path: out/Gorec-arm64.apk
           compression-level: 0
           retention-days: 14
 
       - name: Upload arm7 (старые телефоны)
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-arm7
-          path: out/HamVPN-arm7.apk
+          name: Gorec-arm7
+          path: out/Gorec-arm7.apk
           compression-level: 0
           retention-days: 14
 
       - name: Upload universal (подходит всем, но большой)
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-universal
-          path: out/HamVPN-universal.apk
+          name: Gorec-universal
+          path: out/Gorec-universal.apk
           compression-level: 0
           retention-days: 14
 
       - name: Upload x86_64 (эмуляторы, Android-ТВ на x86)
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-x86_64
-          path: out/HamVPN-x86_64.apk
+          name: Gorec-x86_64
+          path: out/Gorec-x86_64.apk
           compression-level: 0
           retention-days: 14
 
@@ -199,24 +199,24 @@ jobs:
           $src = (Resolve-Path "build\windows\x64\runner\Release").Path
           $out = Join-Path $PWD "out"
           New-Item -ItemType Directory -Force $out | Out-Null
-          iscc "/DAppVersion=$env:APP_VERSION" "/DAppBuild=$env:BUILD" "/DSourceDir=$src" "/O$out" windows\packaging\hamvpn\HamVPN.iss
+          iscc "/DAppVersion=$env:APP_VERSION" "/DAppBuild=$env:BUILD" "/DSourceDir=$src" "/O$out" windows\packaging\gorec\Gorec.iss
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
-          Compress-Archive -Path "$src\*" -DestinationPath out\HamVPN-Windows-Portable.zip
+          Compress-Archive -Path "$src\*" -DestinationPath out\Gorec-Windows-Portable.zip
           Get-ChildItem out
 
       - name: Upload installer
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-Windows-Setup
-          path: out/HamVPN-Windows-Setup.exe
+          name: Gorec-Windows-Setup
+          path: out/Gorec-Windows-Setup.exe
           compression-level: 0
           retention-days: 14
 
       - name: Upload portable
         uses: actions/upload-artifact@v6
         with:
-          name: HamVPN-Windows-Portable
-          path: out/HamVPN-Windows-Portable.zip
+          name: Gorec-Windows-Portable
+          path: out/Gorec-Windows-Portable.zip
           compression-level: 0
           retention-days: 14
 
@@ -232,7 +232,7 @@ jobs:
           path: out
       - uses: actions/download-artifact@v7
         with:
-          name: HamVPN-Windows-Setup
+          name: Gorec-Windows-Setup
           path: out
 
       - name: version.json
@@ -250,9 +250,9 @@ jobs:
           python3 - <<'PY'
           import hashlib, json, os
           files = {}
-          for key, name in (("arm64", "HamVPN-arm64.apk"), ("arm7", "HamVPN-arm7.apk"),
-                            ("x86_64", "HamVPN-x86_64.apk"), ("universal", "HamVPN-universal.apk"),
-                            ("windows", "HamVPN-Windows-Setup.exe")):
+          for key, name in (("arm64", "Gorec-arm64.apk"), ("arm7", "Gorec-arm7.apk"),
+                            ("x86_64", "Gorec-x86_64.apk"), ("universal", "Gorec-universal.apk"),
+                            ("windows", "Gorec-Windows-Setup.exe")):
               data = open(f"out/{name}", "rb").read()
               files[key] = {"file": name, "size": len(data), "sha256": hashlib.sha256(data).hexdigest()}
           info = {
@@ -273,5 +273,5 @@ jobs:
         run: |
           gh release delete app-latest --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
           gh release create app-latest out/*.apk out/*.exe out/version.json -R "$GITHUB_REPOSITORY" \
-            --target "$GITHUB_SHA" --title "ХамВПН $APP_VERSION" \
+            --target "$GITHUB_SHA" --title "Горец $APP_VERSION" \
             --notes "Сборка $BUILD (Android + Windows) для сайта gorec.vip/download" --prerelease

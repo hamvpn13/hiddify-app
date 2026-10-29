@@ -9,11 +9,11 @@ import 'package:hiddify/features/home/widget/connection_button.dart';
 import 'package:hiddify/features/profile/notifier/active_profile_notifier.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_card.dart';
 import 'package:hiddify/features/proxy/active/active_proxy_delay_indicator.dart';
-import 'package:hiddify/hamvpn/account_widgets.dart';
-import 'package:hiddify/hamvpn/speed_widget.dart';
+import 'package:hiddify/gorec/account_widgets.dart';
+import 'package:hiddify/gorec/speed_widget.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:sliver_tools/sliver_tools.dart';
-import 'package:hiddify/hamvpn/updater.dart';
+import 'package:hiddify/gorec/updater.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 
 class HomePage extends HookConsumerWidget {
@@ -26,15 +26,15 @@ class HomePage extends HookConsumerWidget {
     // final hasAnyProfile = ref.watch(hasAnyProfileProvider);
     final activeProfile = ref.watch(activeProfileProvider);
 
-    // ХамВПН: при запуске и возврате в приложение смотрим, нет ли новой версии на сайте
+    // Горец: при запуске и возврате в приложение смотрим, нет ли новой версии на сайте
     useEffect(() {
       Future<void>.delayed(const Duration(seconds: 3), () {
-        if (context.mounted) HamUpdater.autoCheck(context, ref);
+        if (context.mounted) GorecUpdater.autoCheck(context, ref);
       });
       return null;
     }, const []);
     useOnAppLifecycleStateChange((_, s) {
-      if (s == AppLifecycleState.resumed && context.mounted) HamUpdater.autoCheck(context, ref);
+      if (s == AppLifecycleState.resumed && context.mounted) GorecUpdater.autoCheck(context, ref);
     });
 
     return Scaffold(
@@ -47,7 +47,7 @@ class HomePage extends HookConsumerWidget {
         //       )
         //     : null,
         toolbarHeight: 72,
-        title: const HamGreetingTitle(),
+        title: const GorecGreetingTitle(),
         actions: [
           // IconButton(
           //     onPressed: () => const QuickSettingsRoute().push(context),
@@ -61,7 +61,7 @@ class HomePage extends HookConsumerWidget {
           //     material: (context, platform) => MaterialIconButtonData(
           //           tooltip: t.profile.add.buttonText,
           //         )),
-          // ХамВПН: переключатель «прокси / VPN» Hiddify убран; здесь — вход в настройки
+          // Горец: переключатель «прокси / VPN» Hiddify убран; здесь — вход в настройки
           IconButton(
             tooltip: 'Настройки',
             icon: Icon(Icons.settings_rounded, color: theme.colorScheme.onSurfaceVariant),
@@ -88,8 +88,8 @@ class HomePage extends HookConsumerWidget {
                     MultiSliver(
                       children: [
                         // const Gap(100),
-                        // ХамВПН: вместо карточки профиля Hiddify — наш аккаунт (дни, баланс, «Пополнить»)
-                        const SliverToBoxAdapter(child: HamAccountCard()),
+                        // Горец: вместо карточки профиля Hiddify — наш аккаунт (дни, баланс, «Пополнить»)
+                        const SliverToBoxAdapter(child: GorecAccountCard()),
                         const SliverFillRemaining(
                           hasScrollBody: false,
                           child: Column(
@@ -99,7 +99,7 @@ class HomePage extends HookConsumerWidget {
                                 child: Column(
                                   mainAxisSize: MainAxisSize.min,
                                   mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [ConnectionButton(), ActiveProxyDelayIndicator(), HamSpeedBox()],
+                                  children: [ConnectionButton(), ActiveProxyDelayIndicator(), GorecSpeedBox()],
                                 ),
                               ),
                               ActiveProxyFooter(),

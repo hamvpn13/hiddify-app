@@ -3,28 +3,28 @@ import 'package:flutter/material.dart';
 import 'package:hiddify/core/theme/app_theme_mode.dart';
 import 'package:hiddify/core/theme/theme_extensions.dart';
 import 'package:dynamic_color/dynamic_color.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
 
 // Кнопка подключения: красная — выключено, зелёная — подключено.
-const _hamConnectionDark = ConnectionButtonTheme(idleColor: Color(0xFFE5484D), connectedColor: Color(0xFF2FB463));
-const _hamConnectionLight = ConnectionButtonTheme(idleColor: Color(0xFFD93A3F), connectedColor: Color(0xFF1E9E52));
+const _gorecConnectionDark = ConnectionButtonTheme(idleColor: Color(0xFFE5484D), connectedColor: Color(0xFF2FB463));
+const _gorecConnectionLight = ConnectionButtonTheme(idleColor: Color(0xFFD93A3F), connectedColor: Color(0xFF1E9E52));
 
 class AppTheme {
   AppTheme(this.mode, this.fontFamily);
   final AppThemeMode mode;
   final String fontFamily;
 
-  // ХамВПН: стандартный Material 3 — цвета от обоев телефона (Material You),
+  // Горец: стандартный Material 3 — цвета от обоев телефона (Material You),
   // если их нет — из фирменного цвета иконки.
   ThemeData lightTheme(ColorScheme? lightColorScheme) => _build(
-    lightColorScheme?.harmonized() ?? ColorScheme.fromSeed(seedColor: HamTokens.seed),
-    _hamConnectionLight,
+    lightColorScheme?.harmonized() ?? ColorScheme.fromSeed(seedColor: GorecTokens.seed),
+    _gorecConnectionLight,
   );
 
   ThemeData darkTheme(ColorScheme? darkColorScheme) => _build(
     darkColorScheme?.harmonized() ??
-        ColorScheme.fromSeed(seedColor: HamTokens.seed, brightness: Brightness.dark),
-    _hamConnectionDark,
+        ColorScheme.fromSeed(seedColor: GorecTokens.seed, brightness: Brightness.dark),
+    _gorecConnectionDark,
   );
 
   ThemeData _build(ColorScheme scheme, ConnectionButtonTheme connection) => ThemeData(

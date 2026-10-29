@@ -2,11 +2,11 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_hooks/flutter_hooks.dart';
 import 'package:gap/gap.dart';
-import 'package:hiddify/hamvpn/content_pages.dart';
-import 'package:hiddify/hamvpn/hamvpn_account.dart';
-import 'package:hiddify/hamvpn/hamvpn_api.dart';
-import 'package:hiddify/hamvpn/hamvpn_theme.dart';
-import 'package:hiddify/hamvpn/topup_page.dart';
+import 'package:hiddify/gorec/content_pages.dart';
+import 'package:hiddify/gorec/gorec_account.dart';
+import 'package:hiddify/gorec/gorec_api.dart';
+import 'package:hiddify/gorec/gorec_theme.dart';
+import 'package:hiddify/gorec/topup_page.dart';
 import 'package:hooks_riverpod/hooks_riverpod.dart';
 import 'package:url_launcher/url_launcher.dart';
 
@@ -18,16 +18,16 @@ Future<void> _open(String url) async {
 /// Обновляет данные аккаунта при показе и при каждом возврате в приложение.
 void useHamAutoRefresh(WidgetRef ref) {
   useEffect(() {
-    Future.microtask(() => ref.read(hamAccountProvider.notifier).refresh());
+    Future.microtask(() => ref.read(gorecAccountProvider.notifier).refresh());
     return null;
   }, const []);
   useOnAppLifecycleStateChange((_, current) {
-    if (current == AppLifecycleState.resumed) ref.read(hamAccountProvider.notifier).refresh();
+    if (current == AppLifecycleState.resumed) ref.read(gorecAccountProvider.notifier).refresh();
   });
 }
 
 /// Приветствие по времени суток: «Доброе утро / Добрый день / Добрый вечер / Доброй ночи».
-String hamGreeting([DateTime? now]) {
+String gorecGreeting([DateTime? now]) {
   final h = (now ?? DateTime.now()).hour;
   if (h >= 5 && h < 12) return 'Доброе утро';
   if (h >= 12 && h < 17) return 'Добрый день';
@@ -36,17 +36,17 @@ String hamGreeting([DateTime? now]) {
 }
 
 /// Заголовок главного экрана: «Добрый день, Магомед».
-class HamGreetingTitle extends ConsumerWidget {
-  const HamGreetingTitle({super.key});
+class GorecGreetingTitle extends ConsumerWidget {
+  const GorecGreetingTitle({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final live = ref.watch(hamAccountProvider.select((s) => s.login));
-    final login = live.isNotEmpty ? live : ref.watch(HamPrefs.login);
+    final live = ref.watch(gorecAccountProvider.select((s) => s.login));
+    final login = live.isNotEmpty ? live : ref.watch(GorecPrefs.login);
     final theme = Theme.of(context);
     return Row(
       children: [
-        Image.asset('assets/images/hamvpn_logo.png', height: 34),
+        Image.asset('assets/images/gorec_logo.png', height: 34),
         const Gap(12),
         Expanded(
           child: Column(
@@ -54,7 +54,7 @@ class HamGreetingTitle extends ConsumerWidget {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text(
-                login.isEmpty ? hamGreeting() : '${hamGreeting()},',
+                login.isEmpty ? gorecGreeting() : '${gorecGreeting()},',
                 style: theme.textTheme.bodyMedium?.copyWith(color: theme.colorScheme.onSurfaceVariant),
               ),
               if (login.isNotEmpty)
@@ -72,13 +72,13 @@ class HamGreetingTitle extends ConsumerWidget {
 }
 
 /// Компактная плашка на главном экране: статус, дни, баланс и «Пополнить» — одной строкой.
-class HamAccountCard extends HookConsumerWidget {
-  const HamAccountCard({super.key});
+class GorecAccountCard extends HookConsumerWidget {
+  const GorecAccountCard({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final k = HamTokens.of(context);
-    final account = ref.watch(hamAccountProvider);
+    final k = GorecTokens.of(context);
+    final account = ref.watch(gorecAccountProvider);
     useHamAutoRefresh(ref);
 
     final hasData = account.me != null;
@@ -91,18 +91,18 @@ class HamAccountCard extends HookConsumerWidget {
         : !active
         ? ('На паузе — пополните баланс', k.red, k.redSoft)
         : account.trialActive
-        ? ('Пробный период · ${hamDays(days)}', k.green, k.greenSoft)
+        ? ('Пробный период · ${gorecDays(days)}', k.green, k.greenSoft)
         : low
-        ? ('Осталось ${hamDays(days)}', k.amber, k.amberSoft)
-        : ('Осталось ${hamDays(days)}', k.green, k.greenSoft);
+        ? ('Осталось ${gorecDays(days)}', k.amber, k.amberSoft)
+        : ('Осталось ${gorecDays(days)}', k.green, k.greenSoft);
 
-    return HamCard(
+    return GorecCard(
       margin: const EdgeInsets.fromLTRB(16, 8, 16, 4),
       padding: const EdgeInsets.fromLTRB(16, 10, 8, 10),
       borderColor: !hasData ? null : (!active ? k.red : (low ? k.amber : null)),
       child: Row(
         children: [
-          HamStatusDot(color: color, soft: soft),
+          GorecStatusDot(color: color, soft: soft),
           const Gap(12),
           Expanded(
             child: Column(
@@ -111,7 +111,7 @@ class HamAccountCard extends HookConsumerWidget {
               children: [
                 Text(status, style: TextStyle(color: k.text, fontWeight: FontWeight.w600, fontSize: 15)),
                 if (hasData)
-                  Text('Баланс ${hamRub(account.balanceRub)}', style: TextStyle(color: k.textDim, fontSize: 13)),
+                  Text('Баланс ${gorecRub(account.balanceRub)}', style: TextStyle(color: k.textDim, fontSize: 13)),
               ],
             ),
           ),
@@ -126,7 +126,7 @@ class HamAccountCard extends HookConsumerWidget {
               padding: const EdgeInsets.symmetric(horizontal: 14),
               textStyle: const TextStyle(fontSize: 14, fontWeight: FontWeight.w600),
             ),
-            onPressed: hasData ? () => HamTopupPage.open(context) : null,
+            onPressed: hasData ? () => GorecTopupPage.open(context) : null,
             child: const Text('Пополнить'),
           ),
         ],
@@ -136,13 +136,13 @@ class HamAccountCard extends HookConsumerWidget {
 }
 
 /// Вкладка «Аккаунт» (нижнее меню) — повторяет личный кабинет сайта.
-class HamAccountPage extends HookConsumerWidget {
-  const HamAccountPage({super.key});
+class GorecAccountPage extends HookConsumerWidget {
+  const GorecAccountPage({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final k = HamTokens.of(context);
-    final account = ref.watch(hamAccountProvider);
+    final k = GorecTokens.of(context);
+    final account = ref.watch(gorecAccountProvider);
     useHamAutoRefresh(ref);
 
     void snack(String text) => ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(text)));
@@ -167,8 +167,8 @@ class HamAccountPage extends HookConsumerWidget {
       );
       if (code == null || code.isEmpty) return;
       try {
-        snack(await ref.read(hamAccountProvider.notifier).redeemPromo(code));
-      } on HamApiException catch (e) {
+        snack(await ref.read(gorecAccountProvider.notifier).redeemPromo(code));
+      } on GorecApiException catch (e) {
         snack(e.message);
       }
     }
@@ -189,7 +189,7 @@ class HamAccountPage extends HookConsumerWidget {
           ],
         ),
       );
-      if (ok == true) await ref.read(hamAccountProvider.notifier).logout();
+      if (ok == true) await ref.read(gorecAccountProvider.notifier).logout();
     }
 
     Widget row(IconData icon, String title, VoidCallback onTap, {String? subtitle}) => InkWell(
@@ -226,12 +226,12 @@ class HamAccountPage extends HookConsumerWidget {
     return Scaffold(
       appBar: AppBar(title: const Text('Личный кабинет')),
       body: RefreshIndicator(
-        onRefresh: () => ref.read(hamAccountProvider.notifier).refresh(),
+        onRefresh: () => ref.read(gorecAccountProvider.notifier).refresh(),
         child: ListView(
           padding: const EdgeInsets.fromLTRB(14, 16, 14, 40),
           children: [
             if (account.trialActive)
-              HamCard(
+              GorecCard(
                 borderColor: k.green,
                 padding: const EdgeInsets.all(16),
                 child: Text.rich(
@@ -239,7 +239,7 @@ class HamAccountPage extends HookConsumerWidget {
                     style: TextStyle(color: k.text, fontSize: 15),
                     children: [
                       const TextSpan(text: 'Пробный период активен', style: TextStyle(fontWeight: FontWeight.w700)),
-                      TextSpan(text: ' — осталось ${hamDays(((account.trial['days_left'] as num?) ?? 0).toInt())}. Пользуйтесь бесплатно!'),
+                      TextSpan(text: ' — осталось ${gorecDays(((account.trial['days_left'] as num?) ?? 0).toInt())}. Пользуйтесь бесплатно!'),
                     ],
                   ),
                 ),
@@ -247,9 +247,9 @@ class HamAccountPage extends HookConsumerWidget {
             if (account.error != null && !hasData)
               Padding(
                 padding: const EdgeInsets.only(bottom: 16),
-                child: HamFlash(text: account.error!, color: k.red, soft: k.redSoft),
+                child: GorecFlash(text: account.error!, color: k.red, soft: k.redSoft),
               ),
-            HamCard(
+            GorecCard(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
@@ -280,12 +280,12 @@ class HamAccountPage extends HookConsumerWidget {
                   ),
                   const Gap(12),
                   Text(
-                    hasData ? hamRub(account.balanceRub) : '—',
+                    hasData ? gorecRub(account.balanceRub) : '—',
                     style: TextStyle(color: k.text, fontSize: 28, fontWeight: FontWeight.w700, letterSpacing: -0.5),
                   ),
                   Row(
                     children: [
-                      HamStatusDot(
+                      GorecStatusDot(
                         color: active ? k.green : k.red,
                         soft: active ? k.greenSoft : k.redSoft,
                       ),
@@ -294,7 +294,7 @@ class HamAccountPage extends HookConsumerWidget {
                         !hasData
                             ? ''
                             : active
-                            ? 'VPN работает · хватит примерно на ${hamDays(account.daysLeft)}'
+                            ? 'VPN работает · хватит примерно на ${gorecDays(account.daysLeft)}'
                             : 'VPN приостановлен — пополните баланс',
                         style: TextStyle(color: k.textDim),
                       ),
@@ -309,14 +309,14 @@ class HamAccountPage extends HookConsumerWidget {
                   SizedBox(
                     width: double.infinity,
                     child: FilledButton(
-                      onPressed: hasData ? () => HamTopupPage.open(context) : null,
+                      onPressed: hasData ? () => GorecTopupPage.open(context) : null,
                       child: const Text('Пополнить баланс'),
                     ),
                   ),
                 ],
               ),
             ),
-            HamCard(
+            GorecCard(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               child: Column(
                 children: [
@@ -325,17 +325,17 @@ class HamAccountPage extends HookConsumerWidget {
                   row(
                     Icons.payments_rounded,
                     'Заработать с нами',
-                    () => HamReferralPage.open(context),
+                    () => GorecReferralPage.open(context),
                     subtitle: 'Другу — бонусные дни, вам — процент с каждой его оплаты',
                   ),
                 ],
               ),
             ),
-            HamCard(
+            GorecCard(
               padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 4),
               child: Column(
                 children: [
-                  row(Icons.menu_book_rounded, 'Инструкции', () => HamInstructionsPage.open(context)),
+                  row(Icons.menu_book_rounded, 'Инструкции', () => GorecInstructionsPage.open(context)),
                   sep(),
                   row(
                     Icons.support_agent_rounded,
@@ -347,7 +347,7 @@ class HamAccountPage extends HookConsumerWidget {
                   row(
                     Icons.language_rounded,
                     'Кабинет на сайте',
-                    () async => _open(await ref.read(hamAccountProvider.notifier).siteLoginUrl()),
+                    () async => _open(await ref.read(gorecAccountProvider.notifier).siteLoginUrl()),
                     subtitle: 'Откроется сразу, без пароля',
                   ),
                 ],
