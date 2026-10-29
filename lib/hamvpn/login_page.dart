@@ -90,9 +90,9 @@ class HamLoginPage extends HookConsumerWidget {
                         Expanded(
                           child: Text(
                             isRegister.value
-                                ? 'Этим логином и паролем потом можно входить и на сайт hamvpn.net, и в Telegram-бота. '
+                                ? 'Этим логином и паролем потом можно входить и на сайт gorec.vip, и в Telegram-бота. '
                                     'Пробный период включится сразу.'
-                                : 'Логин и пароль — те же, что на сайте hamvpn.net и в Telegram-боте @hamvpn13_bot.\n\n'
+                                : 'Логин и пароль — те же, что на сайте gorec.vip и в Telegram-боте @hamvpn13_bot.\n\n'
                                     'Не помните? Откройте бота и нажмите кнопку «🔐 Вход на сайт» — '
                                     'там видно ваш логин, и можно получить новый пароль.',
                             style: TextStyle(color: Theme.of(context).colorScheme.onSecondaryContainer, height: 1.4),

@@ -89,7 +89,7 @@
                 <data android:host="install-sub" /> -->
             </intent-filter>
 
-            <!-- ХамВПН: «Открыть в приложении» с сайта hamvpn.net (вход без пароля) -->
+            <!-- ХамВПН: «Открыть в приложении» с сайта gorec.vip (вход без пароля) -->
             <intent-filter>
                 <action android:name="android.intent.action.VIEW" />
                 <category android:name="android.intent.category.DEFAULT" />

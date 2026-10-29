@@ -2,7 +2,7 @@ import 'package:dio/dio.dart';
 
 /// Адрес сайта ХамВПН. Приложение — ещё одно окно к тому же аккаунту,
 /// что сайт и бот: тот же логин, баланс, конфигурации и оплата.
-const String kHamSiteUrl = 'https://hamvpn.net';
+const String kHamSiteUrl = 'https://gorec.vip';
 const String kHamApiBase = '$kHamSiteUrl/api/app/v1';
 
 /// Telegram-канал ХамВПН (пусто — пункт в «О программе» не показывается).

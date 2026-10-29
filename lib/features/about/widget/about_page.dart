@@ -91,7 +91,7 @@ class AboutPage extends HookConsumerWidget {
               ListTile(
                 leading: const Icon(Icons.language_rounded),
                 title: const Text('Перейти на официальный сайт'),
-                subtitle: const Text('hamvpn.net'),
+                subtitle: const Text('gorec.vip'),
                 trailing: const Icon(FluentIcons.open_24_regular),
                 onTap: () async => UriUtils.tryLaunch(Uri.parse(kHamSiteUrl)),
               ),

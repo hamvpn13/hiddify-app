@@ -9,7 +9,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import java.io.File
 
-/** Установка обновления ХамВПН, скачанного с hamvpn.net, через системный установщик. */
+/** Установка обновления ХамВПН, скачанного с gorec.vip, через системный установщик. */
 class HamUpdateChannel : FlutterPlugin, MethodChannel.MethodCallHandler {
     private var channel: MethodChannel? = null
 

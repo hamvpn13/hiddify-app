@@ -9,9 +9,9 @@ abstract class Constants {
   static const githubReleasesApiUrl = "https://api.github.com/repos/hamvpn13/hiddify-app/releases";
   static const githubLatestReleaseUrl = "https://github.com/hamvpn13/hiddify-app/releases/latest";
   static const appCastUrl = "https://raw.githubusercontent.com/hamvpn13/hiddify-app/main/appcast.xml";
-  static const telegramChannelUrl = "https://hamvpn.net";
-  static const privacyPolicyUrl = "https://hamvpn.net/policy";
-  static const termsAndConditionsUrl = "https://hamvpn.net/policy";
+  static const telegramChannelUrl = "https://gorec.vip";
+  static const privacyPolicyUrl = "https://gorec.vip/policy";
+  static const termsAndConditionsUrl = "https://gorec.vip/policy";
   static const cfWarpPrivacyPolicy = "https://www.cloudflare.com/application/privacypolicy/";
   static const cfWarpTermsOfService = "https://www.cloudflare.com/application/terms/";
 }

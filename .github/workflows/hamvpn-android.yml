@@ -274,4 +274,4 @@ jobs:
           gh release delete app-latest --yes --cleanup-tag -R "$GITHUB_REPOSITORY" || true
           gh release create app-latest out/*.apk out/*.exe out/version.json -R "$GITHUB_REPOSITORY" \
             --target "$GITHUB_SHA" --title "ХамВПН $APP_VERSION" \
-            --notes "Сборка $BUILD (Android + Windows) для сайта hamvpn.net/download" --prerelease
+            --notes "Сборка $BUILD (Android + Windows) для сайта gorec.vip/download" --prerelease

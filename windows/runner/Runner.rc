@@ -93,7 +93,7 @@ BEGIN
             VALUE "FileDescription", "HamVPN" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
             VALUE "InternalName", "hamvpn" "\0"
-            VALUE "LegalCopyright", "HamVPN (hamvpn.net). Based on Hiddify, GPL/CC BY-NC-SA." "\0"
+            VALUE "LegalCopyright", "HamVPN (gorec.vip). Based on Hiddify, GPL/CC BY-NC-SA." "\0"
             VALUE "OriginalFilename", "HamVPN.exe" "\0"
             VALUE "ProductName", "HamVPN" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"

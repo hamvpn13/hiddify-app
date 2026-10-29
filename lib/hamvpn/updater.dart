@@ -13,7 +13,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-/// Обновление приложения с нашего сайта hamvpn.net (не через Google Play).
+/// Обновление приложения с нашего сайта gorec.vip (не через Google Play).
 ///
 /// Сайт отвечает на /api/app/v1/update, есть ли версия новее установленной,
 /// и даёт ссылку на файл именно для этого устройства:
@@ -200,7 +200,7 @@ class HamUpdater {
       if (!now) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('Без разрешения обновить не получится. Можно скачать с сайта hamvpn.net/download')),
+            const SnackBar(content: Text('Без разрешения обновить не получится. Можно скачать с сайта gorec.vip/download')),
           );
         }
         return;
@@ -311,7 +311,7 @@ class HamUpdater {
     } catch (_) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Не удалось запустить установку. Скачайте программу на сайте hamvpn.net/download')),
+          const SnackBar(content: Text('Не удалось запустить установку. Скачайте программу на сайте gorec.vip/download')),
         );
       }
       await _openInBrowser();
