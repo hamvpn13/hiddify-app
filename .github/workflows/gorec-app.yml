@@ -91,7 +91,15 @@ jobs:
           echo "Версия $NAME, сборка $BUILD"
 
       - name: Build APK
-        run: flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64 --build-name "$APP_VERSION" --build-number "$BUILD"
+        shell: bash
+        run: |
+          set -o pipefail
+          if ! flutter build apk --release --target lib/main.dart --target-platform android-arm,android-arm64,android-x64 --build-name "$APP_VERSION" --build-number "$BUILD" 2>&1 | tee build.log; then
+            # Причину ошибки — в аннотацию, чтобы её было видно без скачивания логов
+            msg=$(grep -E "error|Error|What went wrong|FAILURE|Exception|e: |>" build.log | grep -v "^\s*at " | tail -n 45 | cut -c1-230 | sed ':a;N;$!ba;s/%/%25/g;s/\r//g;s/\n/%0A/g')
+            echo "::error title=APK build failed::$msg"
+            exit 1
+          fi
 
       - name: Collect APKs
         run: |
