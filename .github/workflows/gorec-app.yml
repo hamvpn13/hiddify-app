@@ -76,7 +76,7 @@ jobs:
             echo "storeFile=$RUNNER_TEMP/gorec-release.jks"
             echo "storePassword=$PW"
             echo "keyPassword=$PW"
-            echo "keyAlias=gorec"
+            echo "keyAlias=hamvpn"
           } > android/key.properties
 
       - name: Version
